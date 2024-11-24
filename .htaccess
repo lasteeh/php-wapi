@@ -1,0 +1,9 @@
+RewriteOptions inherit
+
+RewriteEngine On
+
+# Exclude public/ and storage/ and their content from rewrite
+RewriteRule ^(public|storage)/ - [L]
+
+# Rewrite all requests to the index.php file
+RewriteRule ^(.*)$ public/index.php [QSA,L]
