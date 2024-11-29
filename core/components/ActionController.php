@@ -14,8 +14,7 @@ class ActionController extends Base
   protected static $skip_after_action = [];
   protected static $after_action = [];
 
-  protected array $variables;
-
+  protected array $variables = [];
   protected array $meta_tags = [];
 
   protected $yield;
@@ -141,7 +140,7 @@ class ActionController extends Base
 
     // we extract the variables here just before the buffering of the html view files
     // but after some processes
-    extract($this->variables, EXTR_PREFIX_SAME, 'view');
+    if (!empty($this->variables)) extract($this->variables, EXTR_PREFIX_SAME, 'view');
 
     ob_start();
     require_once($__view_file);
@@ -205,7 +204,7 @@ class ActionController extends Base
 
   protected function variables(array $variables = [])
   {
-    $this->variables = $variables;
+    $this->variables = $variables ?? [];
   }
 
   protected function set_meta_tags(
