@@ -178,6 +178,12 @@ class ActionController extends Base
     $_SESSION['FLASH'][$type] = $messages;
   }
 
+  public function flash(string $type = ''): array
+  {
+    if (empty($type)) return $_SESSION['FLASH'] ?? [];
+    return $_SESSION['FLASH'][$type] ?? [];
+  }
+
   protected function yield()
   {
     return $this->yield ?? '';
@@ -243,5 +249,18 @@ class ActionController extends Base
     }
 
     return $path;
+  }
+
+  protected function params_permit(array $permit, array $input): array
+  {
+    $params = [];
+    $permitted_fields = $permit;
+    $user_input = $input;
+    foreach ($permitted_fields as $field) {
+      if (!isset($user_input[$field])) continue;
+      $params[$field] = $user_input[$field];
+    }
+
+    return $params;
   }
 }
