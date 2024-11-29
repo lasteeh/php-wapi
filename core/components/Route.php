@@ -13,8 +13,11 @@ class Route
   private static $catchall_route = "catchall";
 
 
-  public static function get(string $request_uri, string $controller_action, array $options = [])
+  public static function get(string $to, string $controller, array $option = [])
   {
+    $request_uri = $to;
+    $controller_action = $controller;
+
     $pair = explode("@", $controller_action, 2);
     if (count($pair) !== 2) throw new Error("Invalid Controller@action: {$controller_action}");
 
@@ -23,9 +26,9 @@ class Route
       'action' => $pair[1],
     ];
 
-    if (!is_array($options) || empty($options)) return;
+    if (!is_array($option) || empty($option)) return;
 
-    foreach ($options as $option => $value) {
+    foreach ($option as $option => $value) {
       if ($value === null || $value === '') continue;
       self::$GET_ROUTES[$request_uri][$option] = $value;
 
@@ -38,8 +41,11 @@ class Route
     }
   }
 
-  public static function post(string $request_uri, string $controller_action, array $options = [])
+  public static function post(string $to, string $controller, array $option = [])
   {
+    $request_uri = $to;
+    $controller_action = $controller;
+
     $pair = explode("@", $controller_action, 2);
     if (count($pair) !== 2) throw new Error("Invalid Controller@action: {$controller_action}");
 
@@ -48,9 +54,9 @@ class Route
       'action' => $pair[1],
     ];
 
-    if (!is_array($options) || empty($options)) return;
+    if (!is_array($option) || empty($option)) return;
 
-    foreach ($options as $option => $value) {
+    foreach ($option as $option => $value) {
       if ($value === null || $value === '') continue;
       self::$POST_ROUTES[$request_uri][$option] = $value;
 
@@ -63,14 +69,24 @@ class Route
     }
   }
 
-  public static function home(string $controller_action, array $options = [])
+  public static function home(string $controller, array $option = [])
   {
-    self::get("/", $controller_action, $options);
+    self::get("/", $controller, $option);
   }
 
-  public static function fetch(string $name = '', array $options = [])
+  public static function fetch(string $name = '', array $return = [])
   {
-    if (empty($options)) return self::$NAMED_ROUTES[$name] ?? null;
+    if (empty($return)) return self::$NAMED_ROUTES[$name] ?? null;
+
+    if (count($return) === 1) return self::$NAMED_ROUTES[$name][$return[0]] ?? '';
+
+    $path_info = [];
+    foreach ($return as $info) {
+      if (empty($info)) continue;
+      $path_info[] = self::$NAMED_ROUTES[$name][$info];
+    }
+
+    return $path_info;
   }
 
   public static function all(array $methods = []): array
@@ -94,13 +110,15 @@ class Route
     return $routes;
   }
 
-  public static function catchall(string $controller_action, array $options = [])
+  public static function catchall(string $controller, array $via = [], array $option = [])
   {
-    $methods = $options['via'] ?? [];
+    $controller_action = $controller;
+
+    $methods = $via ?? [];
 
     if (!is_array($methods) || empty($methods)) {
-      self::get(self::$catchall_route, $controller_action, $options);
-      self::post(self::$catchall_route, $controller_action, $options);
+      self::get(self::$catchall_route, $controller_action, $option);
+      self::post(self::$catchall_route, $controller_action, $option);
       return;
     }
 
@@ -109,10 +127,10 @@ class Route
       $method = strtolower($method);
       switch ($method) {
         case 'get':
-          self::get(self::$catchall_route, $controller_action, $options);
+          self::get(self::$catchall_route, $controller_action, $option);
           break;
         case 'post':
-          self::post(self::$catchall_route, $controller_action, $options);
+          self::post(self::$catchall_route, $controller_action, $option);
           break;
       }
     }

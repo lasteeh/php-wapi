@@ -3,6 +3,7 @@
 namespace Core\Components;
 
 use Core\Base;
+use Core\Components\Route;
 use Error;
 
 class ActionController extends Base
@@ -228,5 +229,19 @@ class ActionController extends Base
   protected function meta_tag(string $tag)
   {
     return $this->meta_tags[$tag] ?? null;
+  }
+
+  protected function path(string $to = '', string $name = '')
+  {
+    $path = '';
+
+    if (!empty($name) && empty($to)) {
+      $path = Route::fetch(name: $name, return: ['path']);
+      return self::$HOME_URL . $path;
+    } else {
+      $path = self::$HOME_URL . $to;
+    }
+
+    return $path;
   }
 }
