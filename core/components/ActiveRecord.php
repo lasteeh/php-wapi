@@ -98,14 +98,35 @@ class ActiveRecord extends Base
     return $this;
   }
 
-  public function assign_attributes(array $attributes)
+  /**
+   * updates the model instance's attributes without saving to the database
+   * 
+   * this function assigns new values to specified attributes
+   * this doesn't update the database yet
+   * 
+   * @param array $attributes the attributes to update
+   * 
+   * @throws Error if an attribute is not declared as a model property
+   */
+  public function assign_attributes(array $attributes): void
   {
     foreach ($attributes as $attribute => $value) {
       $this->assign_attribute($attribute, $value);
     }
   }
 
-  public function assign_attribute(string $attribute, mixed $value)
+  /**
+   * updates the model instance's specified attribute without saving to the database
+   * 
+   * this function assigns a new value to the specified attribute
+   * this doesn't update the database yet
+   * 
+   * @param string $attribute the name of the attribute to update
+   * @param mixed $value the new value to assign to the attribute
+   * 
+   * @throws Error if the attribute is not declared as a model property
+   */
+  public function assign_attribute(string $attribute, mixed $value): void
   {
     $model_name = static::class;
     if (!property_exists($this, $attribute)) throw new Error("{$model_name} property does not exist: {$attribute}");
@@ -114,7 +135,20 @@ class ActiveRecord extends Base
     $this->ATTRIBUTES[] = $attribute;
   }
 
-  public function update_column(string $column, mixed $value)
+  /**
+   * updates the specified column in the database for the current record 
+   * 
+   * this function assigns a new value to the specified column, validates it,
+   * runs the necessary callbacks, and performs an SQL UPDATE query
+   * 
+   * @param string $column the name of the column to update
+   * @param mixed $value the new value to assign to the column
+   * 
+   * @return bool true if the update was successful, false otherwise
+   * 
+   * @throws \PDOException if the database query fails
+   */
+  public function update_column(string $column, mixed $value): bool
   {
     $this->assign_attribute($column, $value);
     $this->run_callback('before_validate');
@@ -154,6 +188,16 @@ class ActiveRecord extends Base
     return true;
   }
 
+  /**
+   * checks the current model instance if it already exist in the database 
+   * 
+   * this function checks the existence of the current model instance
+   * by performing a database query based on the current set attributes
+   * 
+   * @return bool true if record exists, false otherwise
+   * 
+   * @throws \PDOException if the database query fails
+   */
   public function record_exists(): bool
   {
     if ($this->EXISTING_RECORD) return true;
@@ -183,8 +227,41 @@ class ActiveRecord extends Base
   /*          sql queries below             */
   /******************************************/
 
+  public static function all(array $return = []): array
+  {
+    $returned_columns = $return;
 
-  public static function find_by(array $columns, array $return = [])
+    $select_clause = QueryBuilder::build_select($returned_columns);
+    if (empty($select_clause)) throw new Error("No valid columns.");
+
+    $table = static::table_name();
+    $sql = "SELECT {$select_clause} FROM {$table}";
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute();
+      $records = $statement->fetchAll(\PDO::FETCH_ASSOC);
+      return $records;
+    } catch (\PDOException $error) {
+      throw $error;
+    }
+  }
+
+  /**
+   * finds a record in the database that matches the specified conditions
+   * 
+   * @param array $columns an associative array of conditions where the keys are column names and the values are the values to match.
+   *                       example: ['email' => 'example@example.com', 'status' => 'active']
+   * 
+   * @param array $return an optional array of column names to be returned in the query. If empty, all columns will be returned
+   *                      example: ['id', 'email']
+   * 
+   * @throws \Error if the query cannot determine valid columns for the SELECT clause
+   * @throws \PDOException if there is an issue with the database query execution
+   * 
+   * @return static|null returns an instance of the calling class with the matching record's data, or null if no record is found
+   */
+  public static function find_by(array $columns, array $return = []): static
   {
     $conditions = $columns;
     $returned_columns = $return;
@@ -214,18 +291,19 @@ class ActiveRecord extends Base
   /******************************************/
 
 
-  private static function table_name()
+  private static function table_name(): string
   {
-    if (!empty(static::$TABLE)) return static::$TABLE;
+    $called_class = get_called_class();
+    $stored_table_name = $called_class::$TABLE ?? null;
 
-    $table_name = basename(static::class);
+    if (property_exists($called_class, 'TABLE') && !empty($stored_table_name)) return $stored_table_name;
+    $table_name = basename($called_class);
     $table_name = static::pluralize($table_name);
 
-    static::$TABLE = $table_name;
-    return static::$TABLE;
+    return $table_name;
   }
 
-  private static function pluralize(string $word)
+  private static function pluralize(string $word): string
   {
     // expand 
     $last_letter = strtolower($word[strlen($word) - 1]);
@@ -233,7 +311,7 @@ class ActiveRecord extends Base
     return $word . 's';
   }
 
-  private function setup_callback(string $callback_name)
+  private function setup_callback(string $callback_name): void
   {
     $parent_class = get_parent_class($this);
     $application_callbacks = (is_subclass_of($parent_class, __CLASS__)) ? $parent_class::$$callback_name : [];
@@ -254,7 +332,7 @@ class ActiveRecord extends Base
     static::$$callback_name = $normalized_callbacks;
   }
 
-  private function run_callback(string $callback_name)
+  private function run_callback(string $callback_name): void
   {
     $skip_callback_name = "skip_{$callback_name}";
 
