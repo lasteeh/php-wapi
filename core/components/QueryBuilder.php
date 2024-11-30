@@ -19,7 +19,7 @@ class QueryBuilder
 
     if (empty($valid_columns)) throw new Error("No valid columns.");
 
-    return implode($valid_columns);
+    return implode(", ", $valid_columns);
   }
 
   public static function build_where(array $filters, array $range = [])
