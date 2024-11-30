@@ -3,10 +3,13 @@
 namespace Core\Components;
 
 use Core\Base;
+use COre\Traits\ManagesErrorTrait;
 use Error;
 
 class ActiveRecord extends Base
 {
+  use ManagesErrorTrait;
+
   public static $TABLE;
 
 
@@ -57,6 +60,13 @@ class ActiveRecord extends Base
 
     $this->assign_attributes($attributes);
 
+    // store old values if record already exist
+    if ($this->record_exists()) {
+      foreach ($attributes as $attribute => $value) {
+        $this->OLD[$attribute] = $value;
+      }
+    }
+
     // setup callbacks
     $this->setup_callback('skip_before_validate');
     $this->setup_callback('before_validate');
@@ -84,54 +94,68 @@ class ActiveRecord extends Base
     $this->setup_callback('before_destroy');
     $this->setup_callback('skip_after_destroy');
     $this->setup_callback('after_destroy');
+
+    return $this;
   }
 
-  private static function table_name()
+  public function assign_attributes(array $attributes)
   {
-    if (!empty(static::$TABLE)) return static::$TABLE;
-
-    $table_name = basename(static::class);
-    $table_name = static::pluralize($table_name);
-
-    static::$TABLE = $table_name;
-    return static::$TABLE;
-  }
-
-  private static function pluralize(string $word)
-  {
-    // expand 
-    $last_letter = strtolower($word[strlen($word) - 1]);
-    if ($last_letter == 'y') return substr($word, 0, -1) . 'ies';
-    return $word . 's';
-  }
-
-  private function assign_attributes(array $attributes)
-  {
-    $model_name = static::class;
-
     foreach ($attributes as $attribute => $value) {
-      if (!property_exists($this, $attribute)) throw new Error("{$model_name} property does not exist: {$attribute}");
       $this->assign_attribute($attribute, $value);
     }
-
-    $record_exists = $this->record_exists();
-    if (!$record_exists) return;
-
-    foreach ($attributes as $attribute => $value) {
-      $this->OLD[$attribute] = $value;
-    }
   }
 
-  private function assign_attribute(string $attribute, mixed $value)
+  public function assign_attribute(string $attribute, mixed $value)
   {
+    $model_name = static::class;
+    if (!property_exists($this, $attribute)) throw new Error("{$model_name} property does not exist: {$attribute}");
+
     $this->$attribute = $value;
     $this->ATTRIBUTES[] = $attribute;
   }
 
-  public function record_exists(bool $bool = null): bool
+  public function update_column(string $column, mixed $value)
   {
-    if ($bool !== null) return $this->EXISTING_RECORD = $bool;
+    $this->assign_attribute($column, $value);
+    $this->run_callback('before_validate');
 
+    if (!$this->validate([$column])) return false;
+
+    $this->run_callback('validate');
+
+    if (!empty($this->errors())) return false;
+
+    $this->run_callback('after_validate');
+    $this->run_callback('before_update');
+
+    $filters = [];
+    foreach ($this->ATTRIBUTES as $filter) {
+      if ($filter === $column) continue;
+      $filters[$filter] = $this->$filter;
+    }
+
+    [$where_clause, $bind_params] = QueryBuilder::build_where($filters);
+    $placeholder = ":{$column}_value";
+    $bind_params[$placeholder] = $value;
+
+    $table = static::table_name();
+    $sql = "UPDATE {$table} SET {$column} = {$placeholder} {$where_clause}";
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute($bind_params);
+    } catch (\PDOException $error) {
+      throw $error;
+      return false;
+    }
+
+    $this->run_callback('after_update');
+
+    return true;
+  }
+
+  public function record_exists(): bool
+  {
     if ($this->EXISTING_RECORD) return true;
     if (empty($this->ATTRIBUTES)) return false;
 
@@ -155,6 +179,60 @@ class ActiveRecord extends Base
     }
   }
 
+  /******************************************/
+  /*          sql queries below             */
+  /******************************************/
+
+
+  public static function find_by(array $columns, array $return = [])
+  {
+    $conditions = $columns;
+    $returned_columns = $return;
+
+    $select_clause = QueryBuilder::build_select($returned_columns);
+    if (empty($select_clause)) throw new Error("No valid columns.");
+
+    [$where_clause, $bind_params] = QueryBuilder::build_where($conditions);
+
+    $table = static::table_name();
+    $sql = "SELECT {$select_clause} FROM {$table} {$where_clause}";
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute($bind_params);
+      $result = $statement->fetch(\PDO::FETCH_ASSOC);
+
+      if (empty($result) || !is_array($result)) return null;
+      return new static($result);
+    } catch (\PDOException $error) {
+      throw $error;
+    }
+  }
+
+  /******************************************/
+  /*         helper methods below           */
+  /******************************************/
+
+
+  private static function table_name()
+  {
+    if (!empty(static::$TABLE)) return static::$TABLE;
+
+    $table_name = basename(static::class);
+    $table_name = static::pluralize($table_name);
+
+    static::$TABLE = $table_name;
+    return static::$TABLE;
+  }
+
+  private static function pluralize(string $word)
+  {
+    // expand 
+    $last_letter = strtolower($word[strlen($word) - 1]);
+    if ($last_letter == 'y') return substr($word, 0, -1) . 'ies';
+    return $word . 's';
+  }
+
   private function setup_callback(string $callback_name)
   {
     $parent_class = get_parent_class($this);
@@ -176,33 +254,77 @@ class ActiveRecord extends Base
     static::$$callback_name = $normalized_callbacks;
   }
 
-  private static function existing_record(array $attributes): static
+  private function run_callback(string $callback_name)
   {
-    $record = new static($attributes);
-    $record->record_exists(true);
-    return $record;
+    $skip_callback_name = "skip_{$callback_name}";
+
+    foreach (static::$$callback_name as $callback) {
+      if (in_array($callback, static::$$skip_callback_name)) continue;
+      $this->$callback();
+    }
   }
 
-  public static function find_by(array $columns, array $return = [])
+  private function validate(array $columns): bool
   {
-    $conditions = $columns;
-    $returned_columns = $return;
+    $model_name = static::class;
+    if (empty($this->ATTRIBUTES)) throw new Error("{$model_name} is empty.");
 
-    $select_clause = QueryBuilder::build_select($returned_columns);
-    if (empty($select_clause)) throw new Error("No valid columns.");
-
-    [$where_clause, $bind_params] = QueryBuilder::build_where($conditions);
-
-    $table = static::table_name();
-    $sql = "SELECT {$select_clause} FROM {$table} {$where_clause}";
-
-    try {
-      $statement = Database::$PDO->prepare($sql);
-      $statement->execute($bind_params);
-      $result = $statement->fetch(\PDO::FETCH_ASSOC);
-      return !empty($result) ? static::existing_record($result) : null;
-    } catch (\PDOException $error) {
-      throw $error;
+    $errors = [];
+    foreach ($columns as $column) {
+      if (!isset($this->validations[$column])) continue;
+      $errors = array_merge($errors, $this->validate_field($column));
     }
+
+    if (empty($errors)) return true;
+    $this->add_errors($errors);
+    return false;
+  }
+
+  private function validate_field(string $column): array
+  {
+    $errors = [];
+
+    foreach ($this->validations[$column] as $rule => $value) {
+      switch ($rule) {
+        case 'numericality':
+          if (isset($value['only_integer'])) {
+            if (!is_numeric($this->$column) || !is_int($this->$column + 0)) {
+              $errors[] = "{$column} must be an integer.";
+            }
+          }
+          break;
+
+        case 'presence':
+          if ($value === true && empty($this->$column)) {
+            $errors[] = "{$column} can't be blank.";
+          }
+          break;
+
+        case 'uniqueness':
+          if ($value === true) {
+            $existing_record = static::find_by([$column => $this->$column]);
+            if ($existing_record) {
+              $errors[] = "{$column} '{$this->$column}' already exists.";
+            }
+          }
+          break;
+
+        case 'length':
+          if (isset($value['minimum']) && strlen($this->$column) < $value['minimum']) {
+            $minimum_value = $value['minimum'];
+            $errors[] = "{$column} is too short (minimum length: {$minimum_value} characters).";
+          }
+          break;
+
+        case 'confirmation':
+          $confirmation_field = "{$column}_confirmation";
+          if ($value === true && $this->$column !== $this->$confirmation_field) {
+            $errors[] = "{$column} and {$confirmation_field} do not match.";
+          }
+          break;
+      }
+    }
+
+    return $errors;
   }
 }

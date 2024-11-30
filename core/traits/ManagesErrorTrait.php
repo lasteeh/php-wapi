@@ -11,6 +11,13 @@ trait ManagesErrorTrait
     return $this->ERRORS;
   }
 
+  public function add_errors(array $errors)
+  {
+    foreach ($errors as $error) {
+      $this->add_error($error);
+    }
+  }
+
   public function add_error(string $message)
   {
     $this->ERRORS[] = $message;

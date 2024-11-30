@@ -16,6 +16,9 @@ class Base
   protected const DATABASE_DIR = 'database/';
   protected const CORE_DIR = 'core/';
   protected const PUBLIC_DIR = 'public/';
+  protected const ASSETS_DIR = 'assets/';
+  protected const STYLESHEETS_DIR = 'css/';
+  protected const SCRIPTS_DIR = 'js/';
   protected const VENDORS_DIR = 'vendors/';
   protected const INDEX_FILE = '/public/index.php';
 

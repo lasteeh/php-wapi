@@ -251,6 +251,16 @@ class ActionController extends Base
     return $path;
   }
 
+  public function stylesheet(string $name, string $type = "css")
+  {
+    return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . self::STYLESHEETS_DIR . $name . ".{$type}";
+  }
+
+  public function script(string $name, string $type = "js")
+  {
+    return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . self::SCRIPTS_DIR . $name . ".{$type}";
+  }
+
   protected function params_permit(array $permit, array $input): array
   {
     $params = [];

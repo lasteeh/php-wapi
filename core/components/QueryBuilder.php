@@ -32,26 +32,33 @@ class QueryBuilder
 
     foreach ($filters as $column => $value) {
       if (is_array($value)) {
-        $placeholders = implode(", ", array_fill(0, count($value), "?"));
-        $where_conditions[] = "{$column} IN ({$placeholders})";
-        $bind_params = array_merge($bind_params, $value);
+        $placeholders = [];
+        foreach ($value as $index => $val) {
+          $placeholder = ":{$column}_{$index}";
+          $placeholders[] = $placeholder;
+          $bind_params[$placeholder] = $val;
+        }
+        $where_conditions[] = "{$column} IN (" . implode(", ", $placeholders) . ")";
       } else {
-        $where_conditions[] = "{$column} = ?";
-        $bind_params[] = $value;
+        $placeholder = ":{$column}";
+        $where_conditions[] = "{$column} = {$placeholder}";
+        $bind_params[$placeholder] = $value;
       }
     }
 
     foreach ($range as $column => $values) {
       if (is_array($values) && count($values) === 2) {
-        $where_conditions[] = "{$column} BETWEEN ? AND ?";
-        $bind_params[] = $values[0];
-        $bind_params[] = $values[1];
+        $placeholder_start = "{$column}_start";
+        $placeholder_end = "{$column}_end";
+        $where_conditions[] = "{$column} BETWEEN {$placeholder_start} AND {$placeholder_end}";
+        $bind_params[$placeholder_start] = $values[0];
+        $bind_params[$placeholder_end] = $values[1];
       }
     }
 
     if (empty($where_conditions)) return [$where_clause, []];
-    $where_clause = "WHERE " . implode(" AND ", $where_conditions);
 
+    $where_clause = "WHERE " . implode(" AND ", $where_conditions);
     return [$where_clause, $bind_params];
   }
 }
