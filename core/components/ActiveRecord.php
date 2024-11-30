@@ -3,7 +3,7 @@
 namespace Core\Components;
 
 use Core\Base;
-use COre\Traits\ManagesErrorTrait;
+use Core\Traits\ManagesErrorTrait;
 use Error;
 
 class ActiveRecord extends Base

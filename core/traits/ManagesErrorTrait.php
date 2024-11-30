@@ -1,6 +1,6 @@
 <?php
 
-namespace COre\Traits;
+namespace Core\Traits;
 
 trait ManagesErrorTrait
 {
