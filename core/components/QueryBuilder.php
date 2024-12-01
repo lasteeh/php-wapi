@@ -6,13 +6,12 @@ use Error;
 
 class QueryBuilder
 {
-  public static function build_select(array $columns): string
+  public static function build_columns(array $columns): string
   {
-    $return_columns = $columns;
-    if (empty($return_columns)) return "*";
+    if (empty($columns)) return "*";
 
     $valid_columns = [];
-    foreach ($return_columns as $column) {
+    foreach ($columns as $column) {
       if (!is_string($column)) continue;
       $valid_columns[] = $column;
     }
@@ -22,7 +21,7 @@ class QueryBuilder
     return implode(", ", $valid_columns);
   }
 
-  public static function build_where(array $filters, array $range = [])
+  public static function build_where(array $filters, array $range = []): array
   {
     if (empty($filters)) return ["", []];
 
@@ -31,16 +30,20 @@ class QueryBuilder
     $bind_params = [];
 
     foreach ($filters as $column => $value) {
-      if (is_array($value)) {
+      if (is_array($value) && !empty($value)) {
         $placeholders = [];
         foreach ($value as $index => $val) {
-          $placeholder = ":{$column}_{$index}";
+          $placeholder = ":__existing_{$column}_{$index}";
           $placeholders[] = $placeholder;
           $bind_params[$placeholder] = $val;
         }
         $where_conditions[] = "{$column} IN (" . implode(", ", $placeholders) . ")";
+      } elseif (is_null($value)) {
+        $where_conditions[] = "{$column} IS NULL";
+      } elseif (is_bool($value)) {
+        $where_conditions[] = "{$column} = " . ($value ? 1 : 0);
       } else {
-        $placeholder = ":{$column}";
+        $placeholder = ":__existing_{$column}";
         $where_conditions[] = "{$column} = {$placeholder}";
         $bind_params[$placeholder] = $value;
       }
@@ -48,8 +51,8 @@ class QueryBuilder
 
     foreach ($range as $column => $values) {
       if (is_array($values) && count($values) === 2) {
-        $placeholder_start = "{$column}_start";
-        $placeholder_end = "{$column}_end";
+        $placeholder_start = "__existing_{$column}_start";
+        $placeholder_end = "__existing_{$column}_end";
         $where_conditions[] = "{$column} BETWEEN {$placeholder_start} AND {$placeholder_end}";
         $bind_params[$placeholder_start] = $values[0];
         $bind_params[$placeholder_end] = $values[1];
@@ -60,5 +63,44 @@ class QueryBuilder
 
     $where_clause = "WHERE " . implode(" AND ", $where_conditions);
     return [$where_clause, $bind_params];
+  }
+
+  public static function build_set(array $data): array
+  {
+    $set_clause = '';
+    $set_conditions = [];
+    $bind_params = [];
+
+    foreach ($data as $column => $value) {
+      if (!is_string($column)) continue;
+
+      $placeholder = ":__updated_{$column}";
+      $set_conditions[] = "{$column} = {$placeholder}";
+      $bind_params[$placeholder] = $value;
+    }
+
+    if (empty($set_conditions)) return [$set_clause, []];
+
+    $set_clause = "SET " . implode(", ", $set_conditions);
+    return [$set_clause, $bind_params];
+  }
+
+  public static function build_values(array $data): array
+  {
+    $values_clause = "";
+    $placeholders = [];
+    $bind_params = [];
+
+    foreach ($data as $column => $value) {
+      if (!is_string($column)) continue;
+      $placeholder = ":__value_{$column}";
+      $placeholders[] = $placeholder;
+      $bind_params[$placeholder] = $value;
+    }
+
+    if (empty($placeholders)) return [$values_clause, []];
+
+    $values_clause = "VALUES (" . implode(", ", $placeholders) . ")";
+    return [$values_clause, $bind_params];
   }
 }

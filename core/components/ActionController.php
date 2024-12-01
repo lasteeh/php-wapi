@@ -3,11 +3,14 @@
 namespace Core\Components;
 
 use Core\Base;
+use Core\Traits\ManagesErrorTrait;
 use Core\Components\Route;
 use Error;
 
 class ActionController extends Base
 {
+  use ManagesErrorTrait;
+
   protected Request $REQUEST;
 
   protected static $skip_before_action = [];
@@ -272,5 +275,15 @@ class ActionController extends Base
     }
 
     return $params;
+  }
+
+  protected function route_param(string $name): mixed
+  {
+    return $this->REQUEST->route_params[$name] ?? null;
+  }
+
+  protected function route_params(): array
+  {
+    return $this->REQUEST->route_params ?? [];
   }
 }

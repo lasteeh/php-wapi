@@ -30,7 +30,7 @@ class App extends Base
     $class_namespace = implode("\\", array_map('ucfirst', explode("/", self::APP_DIR . self::CONTROLLERS_DIR)));
     $fqcn = $class_namespace . ucfirst($class) . "Controller";
     if (!class_exists($fqcn)) throw new Error("Controller not found: {$class}");
-    if (!method_exists($fqcn, $action)) throw new Error("Action not found: {$action}");
+    if (!method_exists($fqcn, $action)) throw new Error("{$class}Controller action not found: {$action}");
     if (session_status() === PHP_SESSION_NONE) session_start();
 
     $contoller = new $fqcn($request);

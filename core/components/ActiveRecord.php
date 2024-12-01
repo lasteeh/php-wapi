@@ -132,7 +132,7 @@ class ActiveRecord extends Base
     if (!property_exists($this, $attribute)) throw new Error("{$model_name} property does not exist: {$attribute}");
 
     $this->$attribute = $value;
-    $this->ATTRIBUTES[] = $attribute;
+    if (!in_array($attribute, $this->ATTRIBUTES)) $this->ATTRIBUTES[] = $attribute;
   }
 
   /**
@@ -151,6 +151,8 @@ class ActiveRecord extends Base
   public function update_column(string $column, mixed $value): bool
   {
     $this->assign_attribute($column, $value);
+    if (isset($this->OLD[$column]) && $this->OLD[$column] === $this->$column) return true;
+
     $this->run_callback('before_validate');
 
     if (!$this->validate([$column])) return false;
@@ -162,18 +164,12 @@ class ActiveRecord extends Base
     $this->run_callback('after_validate');
     $this->run_callback('before_update');
 
-    $filters = [];
-    foreach ($this->ATTRIBUTES as $filter) {
-      if ($filter === $column) continue;
-      $filters[$filter] = $this->$filter;
-    }
-
-    [$where_clause, $bind_params] = QueryBuilder::build_where($filters);
-    $placeholder = ":{$column}_value";
-    $bind_params[$placeholder] = $value;
+    [$set_clause, $set_bind_params] = QueryBuilder::build_set([$column => $value]);
+    [$where_clause, $where_bind_params] = QueryBuilder::build_where($this->OLD);
+    $bind_params = array_merge($set_bind_params, $where_bind_params);
 
     $table = static::table_name();
-    $sql = "UPDATE {$table} SET {$column} = {$placeholder} {$where_clause}";
+    $sql = "UPDATE {$table} {$set_clause} {$where_clause};";
 
     try {
       $statement = Database::$PDO->prepare($sql);
@@ -184,7 +180,60 @@ class ActiveRecord extends Base
     }
 
     $this->run_callback('after_update');
+    return true;
+  }
 
+  public function save(): bool
+  {
+    $exists = $this->record_exists();
+    $updated_attributes = $exists ? $this->updated_attributes() : [];
+    $columns = $exists ? array_keys($updated_attributes) : array_keys($this->validations);
+
+    if ($exists && empty($updated_attributes)) return true;
+
+    $this->run_callback('before_validate');
+    if (!$this->validate($columns)) return false;
+
+    $this->run_callback('validate');
+    if (!empty($this->errors())) return false;
+
+    $this->run_callback('after_validate');
+    $this->run_callback('before_save');
+
+    $table = static::table_name();
+    $sql = "";
+    $bind_params = [];
+    if ($exists) {
+      $this->run_callback('before_update');
+
+      [$set_clause, $set_bind_params] = QueryBuilder::build_set($updated_attributes);
+      [$where_clause, $where_bind_params] = QueryBuilder::build_where($this->OLD);
+      $bind_params = array_merge($set_bind_params, $where_bind_params);
+
+      $sql = "UPDATE {$table} {$set_clause} {$where_clause};";
+    } else {
+      $this->run_callback('before_create');
+
+      $new_record = [];
+      foreach ($this->ATTRIBUTES as $attribute) {
+        $new_record[$attribute] = $this->$attribute;
+      }
+
+      $columns_clause = QueryBuilder::build_columns($this->ATTRIBUTES);
+      [$values_clause, $values_bind_params] = QueryBuilder::build_values($new_record);
+      $bind_params = $values_bind_params;
+
+      $sql = "INSERT INTO {$table} ({$columns_clause}) {$values_clause};";
+    }
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute($bind_params);
+    } catch (\PDOException $error) {
+      throw $error;
+    }
+
+    $this->run_callback('after_save');
     return true;
   }
 
@@ -211,7 +260,7 @@ class ActiveRecord extends Base
     [$where_clause, $bind_params] = QueryBuilder::build_where($filters);
 
     $table = static::table_name();
-    $sql = "SELECT 1 FROM {$table} {$where_clause}";
+    $sql = "SELECT 1 FROM {$table} {$where_clause};";
 
     try {
       $statement = Database::$PDO->prepare($sql);
@@ -231,11 +280,11 @@ class ActiveRecord extends Base
   {
     $returned_columns = $return;
 
-    $select_clause = QueryBuilder::build_select($returned_columns);
-    if (empty($select_clause)) throw new Error("No valid columns.");
+    $columns_clause = QueryBuilder::build_columns($returned_columns);
+    if (empty($columns_clause)) throw new Error("No valid columns.");
 
     $table = static::table_name();
-    $sql = "SELECT {$select_clause} FROM {$table}";
+    $sql = "SELECT {$columns_clause} FROM {$table};";
 
     try {
       $statement = Database::$PDO->prepare($sql);
@@ -261,18 +310,18 @@ class ActiveRecord extends Base
    * 
    * @return static|null returns an instance of the calling class with the matching record's data, or null if no record is found
    */
-  public static function find_by(array $columns, array $return = []): static
+  public static function find_by(array $columns, array $return = []): ?static
   {
     $conditions = $columns;
     $returned_columns = $return;
 
-    $select_clause = QueryBuilder::build_select($returned_columns);
-    if (empty($select_clause)) throw new Error("No valid columns.");
+    $columns_clause = QueryBuilder::build_columns($returned_columns);
+    if (empty($columns_clause)) throw new Error("No valid columns.");
 
     [$where_clause, $bind_params] = QueryBuilder::build_where($conditions);
 
     $table = static::table_name();
-    $sql = "SELECT {$select_clause} FROM {$table} {$where_clause}";
+    $sql = "SELECT {$columns_clause} FROM {$table} {$where_clause};";
 
     try {
       $statement = Database::$PDO->prepare($sql);
@@ -404,5 +453,16 @@ class ActiveRecord extends Base
     }
 
     return $errors;
+  }
+
+  private function updated_attributes(): array
+  {
+    $updated_attributes = [];
+    foreach ($this->ATTRIBUTES as $attribute) {
+      if ($this->$attribute === $this->OLD[$attribute]) continue;
+      $updated_attributes[$attribute] = $this->$attribute;
+    }
+
+    return $updated_attributes;
   }
 }
