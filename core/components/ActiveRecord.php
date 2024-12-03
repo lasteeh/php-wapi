@@ -348,6 +348,27 @@ class ActiveRecord extends Base
     }
   }
 
+  public static function fetch_by(array $filter, array $return = [], array $range = []): array
+  {
+    $columns_clause = QueryBuilder::build_columns($return);
+    if (empty($columns_clause)) throw new Error("No valid columns.");
+
+    [$where_clause, $where_bind_params] = QueryBuilder::build_where($filter);
+
+    $table = static::table_name();
+    $sql = "SELECT {$columns_clause} FROM {$table} {$where_clause}";
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute($where_bind_params);
+      $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+      return $result;
+    } catch (\PDOException $error) {
+      throw $error;
+    }
+  }
+
   /******************************************/
   /*         helper methods below           */
   /******************************************/

@@ -27,11 +27,68 @@ class Blacksmith extends Base
     $flags = [];
     foreach ($arguments as $argument) {
       if (!is_string($argument) || empty(trim($argument)) || strpos($argument, '--') !== 0) continue;
-      [$name, $value] = explode("=", str_replace('--', '', $argument), 2);
+      $argument = str_replace('--', '', $argument);
+
+      if (strpos($argument, '=') === false) {
+        $flags[$argument] = true;
+        continue;
+      }
+
+      [$name, $value] = explode('=', $argument, 2);
+      if (preg_match('/^"(.*)"$/', $value, $matches)) {
+        $value = $matches[1];
+      }
+
       $flags[$name] = $value;
     }
 
     switch ($action) {
+
+
+      case 'refine':
+        $model_name = $flags['model'] ?? '';
+        $models_directory = str_replace("/", "\\", ucfirst(self::APP_DIR) . ucfirst(self::MODELS_DIR));
+
+        $fqcn = $models_directory . ucfirst($model_name);
+        if (!is_string($model_name) || empty($model_name) || !class_exists($fqcn)) throw new Error("Model not found: {$model_name} \n");
+
+        $attributes = $flags;
+        unset($attributes['model']);
+        $model = $fqcn::find_by($attributes);
+
+        if (empty($model)) die("{$model_name} not found.");
+
+        $properties = get_object_vars($model);
+        echo "\n";
+        foreach ($properties as $_property => $_value) {
+          if (is_array($_value)) continue;
+          echo "{$_property}: {$_value} \n";
+        }
+
+        $confirmation = readline("Input new attribute values in flags: \n");
+        preg_match_all('/--(\w+)=("[^"]*"|\S+)/', $confirmation, $matches);
+
+        $keys = $matches[1];
+        $values = $matches[2];
+        $attribute_flags = array_combine($keys, $values);
+
+        if (empty($attribute_flags)) die();
+
+        $model->assign_attributes($attribute_flags);
+        $model->save();
+        $errors = $model->errors();
+
+        if (!empty($errors)) {
+          echo "\n";
+          foreach ($errors as $error) {
+            echo "{$error} \n";
+          }
+        }
+
+        if ($model->record_exists()) {
+          echo "\n {$model_name} updated successfully. \n";
+        }
+        break;
 
 
       case 'register':

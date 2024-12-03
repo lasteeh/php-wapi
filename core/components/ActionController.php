@@ -264,6 +264,11 @@ class ActionController extends Base
     return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . self::SCRIPTS_DIR . $name . ".{$type}";
   }
 
+  public function asset(string $name)
+  {
+    return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . $name;
+  }
+
   protected function params_permit(array $permit, array $input): array
   {
     $params = [];
