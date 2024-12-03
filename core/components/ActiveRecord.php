@@ -47,6 +47,7 @@ class ActiveRecord extends Base
 
 
   private bool $EXISTING_RECORD = false;
+  private array $TEMPORARY_ATTRIBUTES = [];
   private array $ATTRIBUTES = [];
   private array $OLD = [];
 
@@ -131,8 +132,20 @@ class ActiveRecord extends Base
     $model_name = static::class;
     if (!property_exists($this, $attribute)) throw new Error("{$model_name} property does not exist: {$attribute}");
 
+    if (!empty($this->validations[$attribute]['confirmation'])) {
+      $confirmation_attribute = "{$attribute}_confirmation";
+      if (!in_array($confirmation_attribute, $this->TEMPORARY_ATTRIBUTES, true)) $this->TEMPORARY_ATTRIBUTES[] = $confirmation_attribute;
+    }
+
     $this->$attribute = $value;
-    if (!in_array($attribute, $this->ATTRIBUTES)) $this->ATTRIBUTES[] = $attribute;
+    if (!in_array($attribute, $this->ATTRIBUTES, true) && !in_array($attribute, $this->TEMPORARY_ATTRIBUTES, true)) $this->ATTRIBUTES[] = $attribute;
+  }
+
+  public function remove_attribute(string $attribute): void
+  {
+    unset($this->$attribute);
+    $this->ATTRIBUTES = array_diff($this->ATTRIBUTES, [$attribute]);
+    $this->ATTRIBUTES = array_values($this->ATTRIBUTES);
   }
 
   /**

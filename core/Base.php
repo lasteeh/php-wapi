@@ -14,6 +14,7 @@ class Base
   protected const VIEWS_DIR = 'views/';
   protected const CONFIG_DIR = 'config/';
   protected const DATABASE_DIR = 'database/';
+  protected const MIGRATIONS_DIR = 'migrations/';
   protected const CORE_DIR = 'core/';
   protected const PUBLIC_DIR = 'public/';
   protected const ASSETS_DIR = 'assets/';
