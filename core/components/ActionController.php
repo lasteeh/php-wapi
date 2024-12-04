@@ -254,17 +254,17 @@ class ActionController extends Base
     return $path;
   }
 
-  public function stylesheet(string $name, string $type = "css")
+  protected function stylesheet(string $name, string $type = "css")
   {
     return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . self::STYLESHEETS_DIR . $name . ".{$type}";
   }
 
-  public function script(string $name, string $type = "js")
+  protected function script(string $name, string $type = "js")
   {
     return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . self::SCRIPTS_DIR . $name . ".{$type}";
   }
 
-  public function asset(string $name)
+  protected function asset(string $name)
   {
     return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . $name;
   }
@@ -290,5 +290,10 @@ class ActionController extends Base
   protected function route_params(): array
   {
     return $this->REQUEST->route_params ?? [];
+  }
+
+  protected function is_path(string $name): bool
+  {
+    return (is_string($this->REQUEST->name) && !empty($this->REQUEST->name) && $this->REQUEST->name === $name);
   }
 }

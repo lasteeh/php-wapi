@@ -9,6 +9,7 @@ class Request
   public ?string $controller = null;
   public ?string $action = null;
   public ?string $request_uri = null;
+  public ?string $name = null;
   public array $request_uri_params = [];
   public array $route_params = [];
 
@@ -35,7 +36,6 @@ class Request
     $routes = $all_routes[$request_method] ?? [];
     if (empty($routes)) throw new Error("No route matches: " . strtoupper($request_method) . " \"" . $this->request_uri . "\"");
 
-
     $match_found = false;
     foreach ($routes as $path => $config) {
       if ($match_found) break;
@@ -55,6 +55,7 @@ class Request
 
       $this->controller = $config['controller'] ?? null;
       $this->action = $config['action'] ?? null;
+      $this->name = $config['name'] ?? null;
 
       $match_found = true;
       break;
