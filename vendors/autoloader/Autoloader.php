@@ -42,7 +42,7 @@ class Autoloader
     // where they cant normalize paths having multiple consecutive slashes
     $class_file = preg_replace('/\/+/', '/', $class_file);
 
-    if (file_exists(strtolower($class_file))) {
+    if (file_exists($class_file)) {
       require_once($class_file);
     } else {
       throw new Error("File does not exist: {$class_file}");
