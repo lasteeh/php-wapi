@@ -29,7 +29,7 @@ class Base
   protected static $HOME_DIR;
   protected static $HOME_URL;
 
-  public function handle_errors($exception)
+  final public function handle_errors($exception)
   {
     $error_count = (count($this->ERRORS) > 1) ? "Errors" : "Error";
 
@@ -113,7 +113,7 @@ class Base
   }
 
 
-  protected static function load_env()
+  final protected static function load_env()
   {
     if (empty(self::$HOME_DIR)) {
       self::set_home_dir();
@@ -142,7 +142,7 @@ class Base
   }
 
 
-  protected static function set_home_dir(string $path = '')
+  final protected static function set_home_dir(string $path = '')
   {
     if (empty($path)) {
       $dir = str_replace("\\", "/", __DIR__);
@@ -155,7 +155,7 @@ class Base
     self::$HOME_DIR = str_replace("\\", "/", self::$HOME_DIR);
   }
 
-  protected static function set_home_url(string $path = '')
+  final protected static function set_home_url(string $path = '')
   {
     if (!empty($path)) {
       self::$HOME_URL = $path;
@@ -177,7 +177,7 @@ class Base
     self::$HOME_URL = $request_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost/') . str_replace(self::INDEX_FILE, '', $_SERVER['SCRIPT_NAME']);
   }
 
-  protected static function config(string $config_name)
+  final protected static function config(string $config_name)
   {
     $config_parts = explode(".", $config_name);
     $config_filename = $config_parts[0];
@@ -196,13 +196,13 @@ class Base
     return $key;
   }
 
-  protected static function connect_database(): bool
+  final protected static function connect_database(): bool
   {
     $database = Database::connect();
     return (!empty($database) && $database instanceof \PDO);
   }
 
-  protected static function load_dependencies()
+  final protected static function load_dependencies()
   {
     $dependencies = self::config('dependencies.autoload') ?? [];
     if (!is_array($dependencies) || empty($dependencies)) return;

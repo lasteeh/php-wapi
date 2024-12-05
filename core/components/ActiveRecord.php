@@ -54,7 +54,7 @@ class ActiveRecord extends Base
 
 
 
-  public function __construct(array $attributes = [])
+  final public function __construct(array $attributes = [])
   {
     // generate table name
     static::table_name();
@@ -109,7 +109,7 @@ class ActiveRecord extends Base
    * 
    * @throws Error if an attribute is not declared as a model property
    */
-  public function assign_attributes(array $attributes): void
+  final public function assign_attributes(array $attributes): void
   {
     foreach ($attributes as $attribute => $value) {
       $this->assign_attribute($attribute, $value);
@@ -127,7 +127,7 @@ class ActiveRecord extends Base
    * 
    * @throws Error if the attribute is not declared as a model property
    */
-  public function assign_attribute(string $attribute, mixed $value): void
+  final public function assign_attribute(string $attribute, mixed $value): void
   {
     $model_name = static::class;
     if (!property_exists($this, $attribute)) throw new Error("{$model_name} property does not exist: {$attribute}");
@@ -141,7 +141,7 @@ class ActiveRecord extends Base
     if (!in_array($attribute, $this->ATTRIBUTES, true) && !in_array($attribute, $this->TEMPORARY_ATTRIBUTES, true)) $this->ATTRIBUTES[] = $attribute;
   }
 
-  public function remove_attribute(string $attribute): void
+  final public function remove_attribute(string $attribute): void
   {
     unset($this->$attribute);
     $this->ATTRIBUTES = array_diff($this->ATTRIBUTES, [$attribute]);
@@ -161,7 +161,7 @@ class ActiveRecord extends Base
    * 
    * @throws \PDOException if the database query fails
    */
-  public function update_column(string $column, mixed $value): bool
+  final public function update_column(string $column, mixed $value): bool
   {
     $this->assign_attribute($column, $value);
     if (isset($this->OLD[$column]) && $this->OLD[$column] === $this->$column) return true;
@@ -196,7 +196,7 @@ class ActiveRecord extends Base
     return true;
   }
 
-  public function save(): bool
+  final public function save(): bool
   {
     $exists = $this->record_exists();
     $updated_attributes = $exists ? $this->updated_attributes() : [];
@@ -260,7 +260,7 @@ class ActiveRecord extends Base
    * 
    * @throws \PDOException if the database query fails
    */
-  public function record_exists(): bool
+  final public function record_exists(): bool
   {
     if ($this->EXISTING_RECORD) return true;
     if (empty($this->ATTRIBUTES)) return false;
@@ -289,7 +289,7 @@ class ActiveRecord extends Base
   /*          sql queries below             */
   /******************************************/
 
-  public static function all(array $return = []): array
+  final public static function all(array $return = []): array
   {
     $returned_columns = $return;
 
@@ -323,7 +323,7 @@ class ActiveRecord extends Base
    * 
    * @return static|null returns an instance of the calling class with the matching record's data, or null if no record is found
    */
-  public static function find_by(array $columns, array $return = []): ?static
+  final public static function find_by(array $columns, array $return = []): ?static
   {
     $conditions = $columns;
     $returned_columns = $return;
@@ -348,7 +348,7 @@ class ActiveRecord extends Base
     }
   }
 
-  public static function fetch_by(array $filter, array $return = [], array $range = []): array
+  final public static function fetch_by(array $filter, array $return = [], array $range = []): array
   {
     $columns_clause = QueryBuilder::build_columns($return);
     if (empty($columns_clause)) throw new Error("No valid columns.");

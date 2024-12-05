@@ -24,8 +24,10 @@ class ActionController extends Base
   protected $yield;
   protected $layout;
 
-  public function __construct(Request $request)
+  final public function __construct(Request $request)
   {
+
+
     $this->setup_filter('before_action');
     $this->setup_filter('skip_before_action');
     $this->setup_filter('after_action');
@@ -54,7 +56,7 @@ class ActionController extends Base
     static::$$filter_name = $normalized_filters;
   }
 
-  public function execute(string $action)
+  final public function execute(string $action)
   {
     foreach (static::$before_action as $filter => $options) {
       if (
@@ -77,7 +79,7 @@ class ActionController extends Base
     }
   }
 
-  protected function filter_should_apply(string $action, array $options = []): bool
+  final protected function filter_should_apply(string $action, array $options = []): bool
   {
     if (empty($options)) return true;
 
@@ -88,7 +90,7 @@ class ActionController extends Base
     return false;
   }
 
-  protected function filter_should_skip($skip_filters, $filter, string $action): bool
+  final protected function filter_should_skip($skip_filters, $filter, string $action): bool
   {
     if (!isset($skip_filters[$filter])) return false;
 
@@ -104,7 +106,7 @@ class ActionController extends Base
     return false;
   }
 
-  public function redirect(string $to = '', int $status = 302, array $flash = [])
+  final public function redirect(string $to = '', int $status = 302, array $flash = [])
   {
     $this->clear_flash();
 
@@ -117,7 +119,7 @@ class ActionController extends Base
     exit;
   }
 
-  public function render(string $view = '', string $dir = '', string $layout = '', int $status = 200, array $flash = [])
+  final public function render(string $view = '', string $dir = '', string $layout = '', int $status = 200, array $flash = [])
   {
     // we name most of the variables in this block heavily with "__" prefix because
     // we are going to use extract() which dynamically creates variables for us
@@ -169,35 +171,35 @@ class ActionController extends Base
     $this->clear_flash();
   }
 
-  public function clear_flash()
+  final public function clear_flash()
   {
     if (!isset($_SESSION['FLASH'])) return;
     unset($_SESSION['FLASH']);
   }
 
-  public function set_flash(string $type, array $messages)
+  final public function set_flash(string $type, array $messages)
   {
     if (!isset($_SESSION['FLASH'])) $_SESSION['FLASH'] = [];
     $_SESSION['FLASH'][$type] = $messages;
   }
 
-  public function flash(string $type = ''): array
+  final public function flash(string $type = ''): array
   {
     if (empty($type)) return $_SESSION['FLASH'] ?? [];
     return $_SESSION['FLASH'][$type] ?? [];
   }
 
-  protected function yield()
+  final protected function yield()
   {
     return $this->yield ?? '';
   }
 
-  protected function layout(string $layout)
+  final protected function layout(string $layout)
   {
     $this->layout = $layout;
   }
 
-  protected function partial(string $partial)
+  final protected function partial(string $partial)
   {
     $partial_file_directory = self::$HOME_DIR . self::APP_DIR . self::VIEWS_DIR . 'partials/';
     if (!is_dir($partial_file_directory)) mkdir($partial_file_directory);
@@ -212,12 +214,12 @@ class ActionController extends Base
     return $partial;
   }
 
-  protected function variables(array $variables = [])
+  final protected function variables(array $variables = [])
   {
     $this->variables = $variables ?? [];
   }
 
-  protected function set_meta_tags(
+  final protected function set_meta_tags(
     string $title = '',
     string $description = '',
     string $keywords = '',
@@ -235,12 +237,12 @@ class ActionController extends Base
     if (!empty($robots)) $this->meta_tags['robots'] = $robots;
   }
 
-  protected function meta_tag(string $tag)
+  final protected function meta_tag(string $tag)
   {
     return $this->meta_tags[$tag] ?? null;
   }
 
-  protected function path(string $to = '', string $name = '')
+  final protected function path(string $to = '', string $name = '')
   {
     $path = '';
 
@@ -254,22 +256,22 @@ class ActionController extends Base
     return $path;
   }
 
-  protected function stylesheet(string $name, string $type = "css")
+  final protected function stylesheet(string $name, string $type = "css")
   {
     return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . self::STYLESHEETS_DIR . $name . ".{$type}";
   }
 
-  protected function script(string $name, string $type = "js")
+  final protected function script(string $name, string $type = "js")
   {
     return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . self::SCRIPTS_DIR . $name . ".{$type}";
   }
 
-  protected function asset(string $name)
+  final protected function asset(string $name)
   {
     return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . $name;
   }
 
-  protected function params_permit(array $permit, array $input): array
+  final protected function params_permit(array $permit, array $input): array
   {
     $params = [];
     $permitted_fields = $permit;
@@ -282,17 +284,17 @@ class ActionController extends Base
     return $params;
   }
 
-  protected function route_param(string $name): mixed
+  final protected function route_param(string $name): mixed
   {
     return $this->REQUEST->route_params[$name] ?? null;
   }
 
-  protected function route_params(): array
+  final protected function route_params(): array
   {
     return $this->REQUEST->route_params ?? [];
   }
 
-  protected function is_path(string $name): bool
+  final protected function is_path(string $name): bool
   {
     return (is_string($this->REQUEST->name) && !empty($this->REQUEST->name) && $this->REQUEST->name === $name);
   }
