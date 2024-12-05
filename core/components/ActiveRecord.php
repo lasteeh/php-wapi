@@ -250,6 +250,36 @@ class ActiveRecord extends Base
     return true;
   }
 
+  final public function destroy(): bool
+  {
+    if (!$this->record_exists()) {
+      $this->add_error("Record not found.");
+      return false;
+    }
+
+    $this->run_callback('before_destroy');
+
+    $filters = [];
+    foreach ($this->ATTRIBUTES as $attribute) {
+      $filters[$attribute] = $this->$attribute;
+    }
+
+    [$where_clause, $where_bind_params] = QueryBuilder::build_where($filters);
+
+    $table = static::table_name();
+    $sql = "DELETE FROM {$table} {$where_clause}";
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute($where_bind_params);
+    } catch (\PDOException $error) {
+      throw $error;
+    }
+
+    $this->run_callback('after_destroy');
+    return true;
+  }
+
   /**
    * checks the current model instance if it already exist in the database 
    * 
