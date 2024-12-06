@@ -8,6 +8,7 @@ class Route
 {
   protected static $GET_ROUTES = [];
   protected static $POST_ROUTES = [];
+  protected static $PATCH_ROUTES = [];
 
   private static $NAMED_ROUTES = [];
   private static $catchall_route = "catchall";
@@ -28,11 +29,11 @@ class Route
 
     if (!is_array($option) || empty($option)) return;
 
-    foreach ($option as $option => $value) {
+    foreach ($option as $_option => $value) {
       if ($value === null || $value === '') continue;
-      self::$GET_ROUTES[$request_uri][$option] = $value;
+      self::$GET_ROUTES[$request_uri][$_option] = $value;
 
-      if ($option !== 'name') continue;
+      if ($_option !== 'name') continue;
       if (isset(self::$NAMED_ROUTES[$value])) throw new Error("Route name already in use: {$value}");
       self::$NAMED_ROUTES[$value] = [
         'method' => 'get',
@@ -56,11 +57,39 @@ class Route
 
     if (!is_array($option) || empty($option)) return;
 
-    foreach ($option as $option => $value) {
+    foreach ($option as $_option => $value) {
       if ($value === null || $value === '') continue;
-      self::$POST_ROUTES[$request_uri][$option] = $value;
+      self::$POST_ROUTES[$request_uri][$_option] = $value;
 
-      if ($option !== 'name') continue;
+      if ($_option !== 'name') continue;
+      if (isset(self::$NAMED_ROUTES[$value])) throw new Error("Route name already in use: {$value}");
+      self::$NAMED_ROUTES[$value] = [
+        'method' => 'post',
+        'path' => $request_uri,
+      ];
+    }
+  }
+
+  public static function patch(string $to, string $controller, array $option = [])
+  {
+    $request_uri = $to;
+    $controller_action = $controller;
+
+    $pair = explode("@", $controller_action, 2);
+    if (count($pair) !== 2) throw new Error("Invalid Controller@action: {$controller_action}");
+
+    self::$PATCH_ROUTES[$request_uri] = [
+      'controller' => $pair[0],
+      'action' => $pair[1],
+    ];
+
+    if (!is_array($option) || empty($option)) return;
+
+    foreach ($option as $_option => $value) {
+      if ($value === null || $value === '') continue;
+      self::$PATCH_ROUTES[$request_uri][$_option] = $value;
+
+      if ($_option !== 'name') continue;
       if (isset(self::$NAMED_ROUTES[$value])) throw new Error("Route name already in use: {$value}");
       self::$NAMED_ROUTES[$value] = [
         'method' => 'post',
@@ -91,7 +120,7 @@ class Route
 
   public static function all(array $methods = []): array
   {
-    if (empty($methods)) return ['get' => self::$GET_ROUTES, 'post' => self::$POST_ROUTES];
+    if (empty($methods)) return ['get' => self::$GET_ROUTES, 'post' => self::$POST_ROUTES, 'patch' => self::$PATCH_ROUTES];
 
     $routes = [];
     foreach ($methods as $method) {
@@ -103,6 +132,9 @@ class Route
           break;
         case 'post':
           $routes[$method] = self::$POST_ROUTES;
+          break;
+        case 'patch':
+          $routes[$method] = self::$PATCH_ROUTES;
           break;
       }
     }
@@ -132,6 +164,9 @@ class Route
         case 'post':
           self::post(self::$catchall_route, $controller_action, $option);
           break;
+        case 'patch':
+          self::patch(self::$catchall_route, $controller_action, $option);
+          break;
       }
     }
   }
@@ -141,7 +176,7 @@ class Route
     $all_routes = self::all();
     $catchall_routes = [];
 
-    if (empty($methods)) $methods = ['get', 'post'];
+    if (empty($methods)) $methods = ['get', 'post', 'patch'];
 
     foreach ($methods as $method) {
       if (!is_string($method) || empty($method)) continue;
