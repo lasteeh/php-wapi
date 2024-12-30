@@ -23,6 +23,7 @@
 
 /public/*
 !/public/index.php
+!/public/VERSION
 
 !/public/assets/
 /public/assets/*
