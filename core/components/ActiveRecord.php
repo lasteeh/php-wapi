@@ -410,7 +410,7 @@ class ActiveRecord extends Base
     $stored_table_name = $called_class::$TABLE ?? null;
 
     if (property_exists($called_class, 'TABLE') && !empty($stored_table_name)) return $stored_table_name;
-    $table_name = basename($called_class);
+    $table_name = substr($called_class, strrpos($called_class, '\\') + 1);
     $table_name = static::pluralize($table_name);
 
     return $table_name;
