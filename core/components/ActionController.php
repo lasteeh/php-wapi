@@ -199,19 +199,24 @@ class ActionController extends Base
     $this->layout = $layout;
   }
 
-  final protected function partial(string $partial)
+  final protected function partial(string $partial, array $variables = [])
   {
-    $partial_file_directory = self::$HOME_DIR . self::APP_DIR . self::VIEWS_DIR . 'partials/';
-    if (!is_dir($partial_file_directory)) mkdir($partial_file_directory);
+    $__partial = $partial;
+    $__variables = $variables;
 
-    $partial_file = $partial_file_directory . $partial . ".partial.php";
-    if (!file_exists($partial_file)) throw new Error("Partial file not found: {$partial_file}");
+    $__partial_file_directory = self::$HOME_DIR . self::APP_DIR . self::VIEWS_DIR . 'partials/';
+    if (!is_dir($__partial_file_directory)) mkdir($__partial_file_directory);
+
+    $__partial_file = $__partial_file_directory . $__partial . ".partial.php";
+    if (!file_exists($__partial_file)) throw new Error("Partial file not found: {$__partial_file}");
+
+    if (!empty($__variables)) extract($__variables, EXTR_PREFIX_SAME, 'partial');
 
     ob_start();
-    require_once($partial_file);
-    $partial = ob_get_clean();
+    require_once($__partial_file);
+    $__partial = ob_get_clean();
 
-    return $partial;
+    return $__partial;
   }
 
   final protected function variables(array $variables = [])
