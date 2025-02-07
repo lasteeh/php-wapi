@@ -5,6 +5,7 @@ namespace Core;
 use Core\Components\Database;
 use DateTime;
 use Error;
+use ZipArchive;
 
 class Blacksmith extends Base
 {
@@ -172,6 +173,108 @@ class Blacksmith extends Base
 
         $this->create_file($filename);
         break;
+
+
+      case 'update':
+
+        $download_link = $flags['url'] ?? '';
+        if (empty($download_link)) {
+          echo "Missing --url flag.\n";
+          exit;
+        }
+
+        if (!class_exists("ZipArchive")) {
+          echo "ZipArchive is not enabled. \n";
+          echo "Please enable 'extension=zip' in your php.ini file. \n";
+          exit;
+        }
+
+        $confirmation = readline("This action cannot be undone. Please make sure to backup all your files. Continue update? Y/n: ");
+        if (strtolower($confirmation) !== 'y') {
+          echo "Update aborted.";
+          return;
+        }
+
+        $save_path = "__temp-php-wapi.zip";
+        $extraction_path = "__temp-php-wapi/";
+        $exclusions = [
+          '.gitignore',
+          'storage',
+          'public/index.php',
+        ];
+
+        echo "Updating PHP-WAPI... \n";
+
+        if (is_dir($extraction_path)) {
+          echo "Clearing temporary update directory... \n";
+          if (!$this->delete_dir($extraction_path)) {
+            echo "Failed to clear temporary update directory. \n";
+            exit;
+          }
+        }
+
+        if (file_exists($save_path)) {
+          echo "Clearing existing update zip file... \n";
+          if (unlink($save_path)) {
+            echo "Existing update zip file cleared. \n";
+          } else {
+            echo "Failed to clear update zip file. \n";
+            exit;
+          }
+        }
+
+        echo "Downloading update... \n";
+        $file_content = file_get_contents($download_link);
+        if ($file_content !== false) {
+          file_put_contents($save_path, $file_content);
+          echo "Update zip file downloaded successfully. \n";
+        } else {
+          echo "Failed to download update zip file. \n";
+          if (file_exists($save_path)) {
+            unlink($save_path);
+          }
+          exit;
+        }
+
+        $zip = new ZipArchive;
+        if ($zip->open($save_path) === TRUE) {
+          echo "Extracting files... \n";
+          if ($zip->extractTo($extraction_path)) {
+            echo "Update zip files have been extracted successfully. \n";
+            $zip->close();
+          } else {
+            echo "Failed to extract update zip files. \n";
+            $zip->close();
+            if (is_dir($extraction_path)) {
+              $this->delete_dir($extraction_path);
+            }
+            exit;
+          }
+        } else {
+          echo "Failed to open update zip file. \n";
+          if (is_dir($extraction_path)) {
+            $this->delete_dir($extraction_path);
+          }
+          exit;
+        }
+
+        // TODO: make this dynamically search for README.md in php wapi
+        $update_source = $extraction_path . "php-wapi-main/";
+
+        echo "Updating project files... \n";
+        $this->copy_dir($update_source, self::$HOME_DIR, $exclusions);
+
+        echo "Cleaning up temporary files... \n";
+        if (is_dir($extraction_path)) {
+          $this->delete_dir($extraction_path);
+        }
+        if (file_exists($save_path)) {
+          unlink($save_path);
+        }
+
+        echo "Update completed successfully! \n";
+        echo "Please check that all files were properly updated. \n";
+        break;
     };
   }
 
@@ -190,5 +293,70 @@ class Blacksmith extends Base
 
     if (!file_exists($name)) throw new Error("Failed to create file: {$name} \n");
     echo "File created successfully: {$name} \n";
+  }
+
+  private function delete_dir(string $directory_path): bool
+  {
+    if (!is_dir($directory_path)) {
+      echo "Directory does not exist. \n";
+      return false;
+    }
+
+    $files = array_diff(scandir($directory_path), array('.', '..'));
+
+    foreach ($files as $file) {
+      $file_path = $directory_path . "/" . $file;
+      if (is_dir($file_path)) {
+        $this->delete_dir($file_path);
+      } else {
+        if (!unlink($file_path)) {
+          echo "Failed to delete file: {$file_path} \n";
+          exit;
+        }
+      }
+    }
+
+    if (!rmdir($directory_path)) {
+      echo "Failed to delete directory: {$directory_path} \n";
+      return false;
+    }
+
+    echo "Directory and its contents deleted successfully: {$directory_path} \n";
+    return true;
+  }
+
+  private function copy_dir(string $source, string $dest, array $exclusions = [])
+  {
+    if (!file_exists($dest)) {
+      mkdir($dest, 0755, true);
+    }
+
+    $dir = opendir($source);
+    while (($file = readdir($dir)) !== false) {
+      if ($file === '.' || $file === '..') {
+        continue;
+      }
+
+      $src_file = $source . '/' . $file;
+      $dest_file = $dest . '/' . $file;
+
+      $relative_path = ltrim(str_replace(self::$HOME_DIR, '', $dest_file), '/');
+      $relative_path = str_replace(DIRECTORY_SEPARATOR, '/', $relative_path);
+
+      if (in_array($relative_path, $exclusions)) {
+        echo "Skipping excluded item: {$relative_path}\n";
+        continue;
+      }
+
+      if (is_dir($src_file)) {
+        $this->copy_dir($src_file, $dest_file, $exclusions);
+      } else {
+        if (!copy($src_file, $dest_file)) {
+          echo "Failed to copy file: {$src_file} \n";
+          exit;
+        }
+      }
+    }
+    closedir($dir);
   }
 }
