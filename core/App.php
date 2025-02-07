@@ -10,14 +10,15 @@ class App extends Base
 {
 
 
-  public function __construct(bool $env = false, bool $db = false, bool $dependencies = false)
+  public function __construct()
   {
     set_exception_handler([$this, 'handle_errors']);
-    if ($env === true) self::load_env();
     self::set_home_dir();
+
+    self::load_env();
     self::set_home_url();
-    if ($db === true)  self::connect_database();
-    if ($dependencies === true) self::load_dependencies();
+    if (self::config('app.CONNECT_DB') === true)  self::connect_database();
+    if (self::config('app.REQUIRE_DEPENDENCIES') === true) self::load_dependencies();
     self::config('routes'); // load routes
   }
 

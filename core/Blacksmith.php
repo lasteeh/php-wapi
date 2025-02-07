@@ -14,10 +14,11 @@ class Blacksmith extends Base
     if (php_sapi_name() !== 'cli') return;
 
     set_exception_handler([$this, 'handle_errors']);
-    self::load_env();
     self::set_home_dir();
-    self::connect_database();
-    self::load_dependencies();
+
+    self::load_env();
+    if (self::config('blacksmith.CONNECT_DB') === true)  self::connect_database();
+    if (self::config('blacksmith.REQUIRE_DEPENDENCIES') === true) self::load_dependencies();
   }
 
   public function forge()

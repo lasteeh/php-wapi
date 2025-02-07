@@ -115,10 +115,6 @@ class Base
 
   final protected static function load_env()
   {
-    if (empty(self::$HOME_DIR)) {
-      self::set_home_dir();
-    }
-
     $env_file = self::$HOME_DIR . ".env";
     if (!file_exists($env_file)) return;
 

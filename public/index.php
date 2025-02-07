@@ -5,5 +5,5 @@ Autoloader::register();
 
 use Core\App;
 
-$app = new App(env: true, db: true, dependencies: true);
+$app = new App;
 $app->run();
