@@ -201,7 +201,6 @@ class Blacksmith extends Base
         $exclusions = [
           '.gitignore',
           'storage',
-          'public/index.php',
         ];
 
         echo "Updating PHP-WAPI... \n";
