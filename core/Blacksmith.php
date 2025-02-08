@@ -5,6 +5,8 @@ namespace Core;
 use Core\Components\Database;
 use DateTime;
 use Error;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use ZipArchive;
 
 class Blacksmith extends Base
@@ -258,8 +260,68 @@ class Blacksmith extends Base
           exit;
         }
 
-        // TODO: make this dynamically search for README.md in php wapi
-        $update_source = $extraction_path . "php-wapi-main/";
+        $version_filename = 'VERSION';
+        $update_source = $this->find_file_dir($extraction_path, $version_filename);
+        if (empty($update_source)) {
+          echo "Incorrect update files. Aborting update...\n";
+          echo "Cleaning up temporary files... \n";
+          if (is_dir($extraction_path)) {
+            $this->delete_dir($extraction_path);
+          }
+          if (file_exists($save_path)) {
+            unlink($save_path);
+          }
+          echo "Update aborted. \n";
+          exit;
+        }
+
+        $version_filepath = $update_source . $version_filename;
+        if (!file_exists($version_filepath)) {
+          echo "Some update files are missing. Aborting update... \n";
+          echo "Cleaning up temporary files... \n";
+          if (is_dir($extraction_path)) {
+            $this->delete_dir($extraction_path);
+          }
+          if (file_exists($save_path)) {
+            unlink($save_path);
+          }
+          echo "Update aborted. \n";
+          exit;
+        }
+
+        $version_content = file_get_contents($version_filepath);
+        preg_match('/\b(\d+\.\d+\.\d+)\b/', $version_content, $matches);
+        $downloaded_version = $matches[1] ?? null;
+
+        if (empty($downloaded_version)) {
+          echo "Some update files are missing. Aborting update... \n";
+          echo "Cleaning up temporary files... \n";
+          if (is_dir($extraction_path)) {
+            $this->delete_dir($extraction_path);
+          }
+          if (file_exists($save_path)) {
+            unlink($save_path);
+          }
+          echo "Update aborted. \n";
+          exit;
+        }
+
+        echo "Checking update files... \n";
+
+        $downloaded_version_parts = explode(".", $downloaded_version, 3);
+        if ($downloaded_version_parts[0] < 1 || $downloaded_version_parts[1] < 0 || $downloaded_version_parts[2] < 2) {
+          echo "Cannot update to any versions older than 1.0.2 \n";
+          echo "Aborting update...\n";
+          echo "Cleaning up temporary files... \n";
+          if (is_dir($extraction_path)) {
+            $this->delete_dir($extraction_path);
+          }
+          if (file_exists($save_path)) {
+            unlink($save_path);
+          }
+          echo "Update aborted. \n";
+          exit;
+        }
 
         echo "Updating project files... \n";
         $this->copy_dir($update_source, self::$HOME_DIR, $exclusions);
@@ -273,6 +335,7 @@ class Blacksmith extends Base
         }
 
         echo "Update completed successfully! \n";
+        echo "v {$downloaded_version} \n";
         echo "Please check that all files were properly updated. \n";
         break;
     };
@@ -358,5 +421,16 @@ class Blacksmith extends Base
       }
     }
     closedir($dir);
+  }
+
+  private function find_file_dir(string $directory, string $filename)
+  {
+    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
+    foreach ($iterator as $file) {
+      if ($file->getFilename() === $filename) {
+        return dirname($file->getPathname()) . '/';
+      }
+    }
+    return null;
   }
 }
