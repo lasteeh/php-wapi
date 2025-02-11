@@ -195,7 +195,7 @@ class Blacksmith extends Base
         $confirmation = readline("This action cannot be undone. Please make sure to backup all your files. Continue update? Y/n: ");
         if (strtolower($confirmation) !== 'y') {
           echo "Update aborted.";
-          return;
+          exit;
         }
 
         $save_path = "__temp-php-wapi.zip";
@@ -309,8 +309,8 @@ class Blacksmith extends Base
         echo "Checking update files... \n";
 
         $downloaded_version_parts = explode(".", $downloaded_version, 3);
-        if ($downloaded_version_parts[0] < 1 || $downloaded_version_parts[1] < 0 || $downloaded_version_parts[2] < 2) {
-          echo "Cannot update to any versions older than 1.0.2 \n";
+        if ($downloaded_version_parts[0] < 1 || $downloaded_version_parts[1] < 0 || $downloaded_version_parts[2] < 3) {
+          echo "Cannot update to any versions older than 1.0.3 \n";
           echo "Aborting update...\n";
           echo "Cleaning up temporary files... \n";
           if (is_dir($extraction_path)) {
@@ -322,6 +322,25 @@ class Blacksmith extends Base
           echo "Update aborted. \n";
           exit;
         }
+
+        $current_version_content = file_get_contents(self::$HOME_DIR . $version_filename);
+        preg_match('/\b(\d+\.\d+\.\d+)\b/', $current_version_content, $matches);
+        $current_version = $matches[1] ?? null;
+
+        $confirmation = readline("Updating {$current_version} to {$downloaded_version}. Continue? Y/n: ");
+        if (strtolower($confirmation) !== 'y') {
+          echo "Aborting update...\n";
+          echo "Cleaning up temporary files... \n";
+          if (is_dir($extraction_path)) {
+            $this->delete_dir($extraction_path);
+          }
+          if (file_exists($save_path)) {
+            unlink($save_path);
+          }
+          echo "Update aborted. \n";
+          exit;
+        }
+
 
         echo "Updating project files... \n";
         $this->copy_dir($update_source, self::$HOME_DIR, $exclusions);
