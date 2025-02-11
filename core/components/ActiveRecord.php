@@ -232,7 +232,7 @@ class ActiveRecord extends Base
         $new_record[$attribute] = $this->$attribute;
       }
 
-      $columns_clause = QueryBuilder::build_columns($this->ATTRIBUTES);
+      $columns_clause = QueryBuilder::build_columns($this, $this->ATTRIBUTES);
       [$values_clause, $values_bind_params] = QueryBuilder::build_values($new_record);
       $bind_params = $values_bind_params;
 
@@ -322,11 +322,12 @@ class ActiveRecord extends Base
   final public static function all(array $return = []): array
   {
     $returned_columns = $return;
+    $model = new static();
 
-    $columns_clause = QueryBuilder::build_columns($returned_columns);
+    $columns_clause = QueryBuilder::build_columns($model, $returned_columns);
     if (empty($columns_clause)) throw new Error("No valid columns.");
 
-    $table = static::table_name();
+    $table = $model::table_name();
     $sql = "SELECT {$columns_clause} FROM {$table};";
 
     try {
@@ -357,13 +358,14 @@ class ActiveRecord extends Base
   {
     $conditions = $columns;
     $returned_columns = $return;
+    $model = new static();
 
-    $columns_clause = QueryBuilder::build_columns($returned_columns);
+    $columns_clause = QueryBuilder::build_columns($model, $returned_columns);
     if (empty($columns_clause)) throw new Error("No valid columns.");
 
     [$where_clause, $bind_params] = QueryBuilder::build_where($conditions);
 
-    $table = static::table_name();
+    $table = $model::table_name();
     $sql = "SELECT {$columns_clause} FROM {$table} {$where_clause};";
 
     try {
@@ -380,12 +382,14 @@ class ActiveRecord extends Base
 
   final public static function fetch_by(array $filter, array $return = [], array $range = []): array
   {
-    $columns_clause = QueryBuilder::build_columns($return);
+    $model = new static();
+
+    $columns_clause = QueryBuilder::build_columns($model, $return);
     if (empty($columns_clause)) throw new Error("No valid columns.");
 
     [$where_clause, $where_bind_params] = QueryBuilder::build_where($filter);
 
-    $table = static::table_name();
+    $table = $model::table_name();
     $sql = "SELECT {$columns_clause} FROM {$table} {$where_clause}";
 
     try {

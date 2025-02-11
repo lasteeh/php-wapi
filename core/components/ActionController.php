@@ -144,9 +144,14 @@ class ActionController extends Base
     $__view_file = self::$HOME_DIR . self::APP_DIR . self::VIEWS_DIR . $__dir . "/" . $__view . ".view.php";
     if (!file_exists($__view_file)) throw new Error("View file not found: {$__view_file}");
 
+    $__safe_variables = [];
+    foreach ($this->variables as $key => $value) {
+      $__safe_variables[$key] = $this->encode_html($value);
+    }
+
     // we extract the variables here just before the buffering of the html view files
     // but after some processes
-    if (!empty($this->variables)) extract($this->variables, EXTR_PREFIX_SAME, 'view');
+    if (!empty($__safe_variables)) extract($__safe_variables, EXTR_PREFIX_SAME, 'view');
 
     ob_start();
     require_once($__view_file);
@@ -210,7 +215,12 @@ class ActionController extends Base
     $__partial_file = $__partial_file_directory . $__partial . ".partial.php";
     if (!file_exists($__partial_file)) throw new Error("Partial file not found: {$__partial_file}");
 
-    if (!empty($__variables)) extract($__variables, EXTR_PREFIX_SAME, 'partial');
+    $__safe_variables = [];
+    foreach ($__variables as $key => $value) {
+      $__safe_variables[$key] = $this->encode_html($value);
+    }
+
+    if (!empty($__safe_variables)) extract($__safe_variables, EXTR_PREFIX_SAME, 'partial');
 
     ob_start();
     require_once($__partial_file);
@@ -302,5 +312,21 @@ class ActionController extends Base
   final protected function is_path(string $name): bool
   {
     return (is_string($this->REQUEST->name) && !empty($this->REQUEST->name) && $this->REQUEST->name === $name);
+  }
+
+  final protected function encode_html(mixed $data)
+  {
+    if (is_array($data)) {
+      return array_map([$this, 'encode_html'], $data);
+    } elseif (is_string($data)) {
+      return htmlspecialchars($data, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    return $data;
+  }
+
+  final protected function esc_html(string $data)
+  {
+    return htmlspecialchars_decode($data, ENT_QUOTES | ENT_HTML5);
   }
 }

@@ -6,13 +6,13 @@ use Error;
 
 class QueryBuilder
 {
-  public static function build_columns(array $columns): string
+  public static function build_columns(ActiveRecord $model, array $columns): string
   {
     if (empty($columns)) return "*";
 
     $valid_columns = [];
     foreach ($columns as $column) {
-      if (!is_string($column)) continue;
+      if (!is_string($column) || !property_exists($model, $column)) continue;
       $valid_columns[] = $column;
     }
 
