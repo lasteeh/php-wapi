@@ -11,11 +11,20 @@
 !/app/views/
 /app/views/*
 
+!/app/mailers/
+/app/mailers/*
+
 !/app/views/layouts/
 /app/views/layouts/*
 
 !/app/views/partials/
 /app/views/partials/*
+
+!/app/views/mailers/
+/app/views/mailers/*
+
+!/app/views/mailers/partials/
+/app/views/mailers/partials/*
 
 /config/*
 

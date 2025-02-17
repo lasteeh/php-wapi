@@ -145,8 +145,8 @@ class ActionController extends Base
     if (!file_exists($__view_file)) throw new Error("View file not found: {$__view_file}");
 
     $__safe_variables = [];
-    foreach ($this->variables as $key => $value) {
-      $__safe_variables[$key] = $this->encode_html($value);
+    foreach ($this->variables as $__key => $__value) {
+      $__safe_variables[$__key] = $this->encode_html($__value);
     }
 
     // we extract the variables here just before the buffering of the html view files
@@ -204,29 +204,30 @@ class ActionController extends Base
     $this->layout = $layout;
   }
 
-  final protected function partial(string $partial, array $variables = [])
+  final protected function partial(string $partial, array $variables = [], string $path = "partials/")
   {
     $__partial = $partial;
     $__variables = $variables;
+    $__path = rtrim($path, "/");
 
-    $__partial_file_directory = self::$HOME_DIR . self::APP_DIR . self::VIEWS_DIR . 'partials/';
-    if (!is_dir($__partial_file_directory)) mkdir($__partial_file_directory);
+    $__partial_file_directory = self::$HOME_DIR . self::APP_DIR . self::VIEWS_DIR . $__path . "/";
+    if (!is_dir($__partial_file_directory)) mkdir($__partial_file_directory, 0777, true);
 
     $__partial_file = $__partial_file_directory . $__partial . ".partial.php";
     if (!file_exists($__partial_file)) throw new Error("Partial file not found: {$__partial_file}");
 
     $__safe_variables = [];
-    foreach ($__variables as $key => $value) {
-      $__safe_variables[$key] = $this->encode_html($value);
+    foreach ($__variables as $__key => $__value) {
+      $__safe_variables[$__key] = $this->encode_html($__value);
     }
 
     if (!empty($__safe_variables)) extract($__safe_variables, EXTR_PREFIX_SAME, 'partial');
 
     ob_start();
     require_once($__partial_file);
-    $__partial = ob_get_clean();
+    $__partial_content = ob_get_clean();
 
-    return $__partial;
+    return $__partial_content;
   }
 
   final protected function variables(array $variables = [])
