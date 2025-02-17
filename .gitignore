@@ -39,5 +39,6 @@
 
 /vendors/*
 !vendors/autoloader/
+!vendors/phpmailer/
 
 !*.gitkeep
