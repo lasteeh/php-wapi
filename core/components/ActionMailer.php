@@ -43,17 +43,17 @@ class ActionMailer extends Base
 
   final public static function add_reply_to(string $email, string $name = '')
   {
-    static::$reply_to[$email] = $name;
+    static::$reply_to[] = [$email, $name];
   }
 
   final public static function add_cc(string $email, string $name = '')
   {
-    static::$cc[$email] = $name;
+    static::$cc[] = [$email, $name];
   }
 
   final public static function add_bcc(string $email, string $name = '')
   {
-    static::$bcc[$email] = $name;
+    static::$bcc[] = [$email, $name];
   }
 
   final public static function is_html(bool $is_html = true)
@@ -81,6 +81,7 @@ class ActionMailer extends Base
 
     try {
       if ($__use_smtp) {
+        $__phpmailer->isSMTP();
         $__smtp_settings = static::config('mailer.SMTP_SETTINGS') ?? [];
 
         $__phpmailer->Host = $__smtp_settings['HOST'] ?? 'localhost';
@@ -88,6 +89,20 @@ class ActionMailer extends Base
         $__phpmailer->Username = $__smtp_settings['USERNAME'] ?? '';
         $__phpmailer->Password = $__smtp_settings['PASSWORD'] ?? '';
         $__phpmailer->SMTPAutoTLS = filter_var($__smtp_settings['SMTP_AUTOTLS'] ?? true, FILTER_VALIDATE_BOOL);
+
+
+        $__smtp_secure = $__smtp_settings['SMTP_SECURE'] ?? '';
+        switch ($__smtp_secure) {
+          case 'STARTTLS':
+            $__phpmailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            break;
+          case 'SMTPS':
+            $__phpmailer->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            break;
+          default:
+            break;
+        }
+
         $__phpmailer->Port = $__smtp_settings['PORT'] ?? 25;
       } else {
         $__phpmailer->isMail();
@@ -109,18 +124,24 @@ class ActionMailer extends Base
       }
 
       if (!empty(static::$reply_to)) {
-        foreach (static::$reply_to as $__reply_to_email) {
-          $__phpmailer->addReplyTo(trim($__reply_to_email));
+        foreach (static::$reply_to as $__reply_to) {
+          $__reply_to_email = $__reply_to[0];
+          $__reply_to_name = $__reply_to[1] ?? '';
+          $__phpmailer->addReplyTo(trim($__reply_to_email), $__reply_to_name);
         }
       }
       if (!empty(static::$cc)) {
-        foreach (static::$cc as $__cc_email) {
-          $__phpmailer->addCC(trim($__cc_email));
+        foreach (static::$cc as $__cc) {
+          $__cc_email = $__cc[0];
+          $__cc_name = $__cc[1] ?? '';
+          $__phpmailer->addCC(trim($__cc_email), $__cc_name);
         }
       }
       if (!empty(static::$bcc)) {
-        foreach (static::$bcc as $__bcc_email) {
-          $__phpmailer->addBCC(trim($__bcc_email));
+        foreach (static::$bcc as $__bcc) {
+          $__bcc_email = $__bcc[0];
+          $__bcc_name = $__bcc[1] ?? '';
+          $__phpmailer->addBCC(trim($__bcc_email), $__bcc_name);
         }
       }
 
