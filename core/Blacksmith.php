@@ -311,8 +311,8 @@ class Blacksmith extends Base
         echo "Checking update files... \n";
 
         $downloaded_version_parts = explode(".", $downloaded_version, 3);
-        if ($downloaded_version_parts[0] < 1 || $downloaded_version_parts[1] < 0 || $downloaded_version_parts[2] < 3) {
-          echo "Cannot update to any versions older than 1.0.3 \n";
+        if ($downloaded_version_parts[0] < 1 || $downloaded_version_parts[1] < 0 || $downloaded_version_parts[2] < 10) {
+          echo "Cannot update to any versions older than 1.0.10 \n";
           echo "Aborting update...\n";
           echo "Cleaning up temporary files... \n";
           if (is_dir($extraction_path)) {

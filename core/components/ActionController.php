@@ -236,7 +236,7 @@ class ActionController extends Base
     if (!empty($__safe_variables)) extract($__safe_variables, EXTR_PREFIX_SAME, 'partial');
 
     ob_start();
-    require_once($__partial_file);
+    require($__partial_file);
     $__partial_content = ob_get_clean();
 
     return $__partial_content;
