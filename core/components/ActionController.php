@@ -106,6 +106,18 @@ class ActionController extends Base
     return false;
   }
 
+  final protected function return(string $append = '', int $status = 302, array $flash = [])
+  {
+    $this->clear_flash();
+
+    foreach ($flash as $type => $messages) {
+      $this->set_flash($type, $messages);
+    }
+
+    header("Location:" . $_SERVER['HTTP_REFERER'] . $append, true, $status);
+    exit;
+  }
+
   final public function redirect(string $to = '', int $status = 302, array $flash = [])
   {
     $this->clear_flash();
