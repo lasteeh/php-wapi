@@ -124,31 +124,9 @@ class ActionMailer extends Base
         }
       }
 
-      $__variables = [];
-      foreach (static::$variables as $__key => $__value) {
-        $__variables[$__key] = static::encode_html($__value);
-      }
-      if (!empty($__variables)) extract($__variables, EXTR_PREFIX_SAME, 'template');
+      static::build_body();
 
-      $__template_name = static::$template;
-      if (empty($__template_name)) {
-        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
-        $__template_name = $backtrace[1]['function'] ?? '';
-      }
-
-      $__template_path = rtrim(static::$template_path, "/");
-      if (empty($__template_path)) {
-        $__template_path = str_replace("mailer", "", strtolower(implode("/", array_slice(explode("\\", get_called_class()), 2))));
-      }
-
-      $__template_file = self::$HOME_DIR . self::APP_DIR . self::VIEWS_DIR . "mailers/" . $__template_path . "/" . $__template_name . ".template.php";
-      if (!file_exists($__template_file)) throw new Error("Mail template file not found: {$__template_file}");
-
-      ob_start();
-      require_once($__template_file);
-      static::$body = ob_get_clean();
-
-      $__phpmailer->isHTML(true);
+      $__phpmailer->isHTML(static::$is_html);
       $__phpmailer->Subject = $__subject;
       $__phpmailer->Body = static::$body;
 
@@ -202,5 +180,44 @@ class ActionMailer extends Base
     $__partial_content = ob_get_clean();
 
     return $__partial_content;
+  }
+
+  private static function build_body()
+  {
+
+    $__variables = [];
+    foreach (static::$variables as $__key => $__value) {
+      $__variables[$__key] = static::encode_html($__value);
+    }
+    if (!empty($__variables)) extract($__variables, EXTR_PREFIX_SAME, 'template');
+
+    $__template_name = static::$template;
+    if (empty($__template_name)) {
+      $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+      $__template_name = $backtrace[2]['function'] ?? '';
+    }
+
+    $__template_path = rtrim(static::$template_path, "/");
+    if (empty($__template_path)) {
+      $__template_path = str_replace("mailer", "", strtolower(implode("/", array_slice(explode("\\", get_called_class()), 2))));
+    }
+
+    $__template_file = self::$HOME_DIR . self::APP_DIR . self::VIEWS_DIR . "mailers/" . $__template_path . "/" . $__template_name . ".template.php";
+    if (!file_exists($__template_file)) throw new Error("Mail template file not found: {$__template_file}");
+
+    ob_start();
+    require_once($__template_file);
+    static::$body = ob_get_clean();
+  }
+
+  final protected static function image(string $name)
+  {
+    return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . "images/" . $name;
+  }
+
+  final protected static function preview_mail()
+  {
+    static::build_body();
+    return static::$body;
   }
 }
