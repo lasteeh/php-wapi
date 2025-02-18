@@ -5,6 +5,7 @@ namespace Core;
 use Core\Components\Database;
 use DateTime;
 use Error;
+use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ZipArchive;
@@ -261,7 +262,8 @@ class Blacksmith extends Base
         }
 
         $version_filename = 'VERSION';
-        $update_source = $this->find_file_dir($extraction_path, $version_filename);
+        $exclude_directories = ['vendors'];
+        $update_source = $this->find_file_dir($extraction_path, $version_filename, $exclude_directories);
         if (empty($update_source)) {
           echo "Incorrect update files. Aborting update...\n";
           echo "Cleaning up temporary files... \n";
@@ -442,9 +444,19 @@ class Blacksmith extends Base
     closedir($dir);
   }
 
-  private function find_file_dir(string $directory, string $filename)
+  private function find_file_dir(string $directory, string $filename, array $exclude = [])
   {
-    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
+    $dir_iterator = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
+
+    $filter_iterator = new RecursiveCallbackFilterIterator($dir_iterator, function ($file, $key, $iterator) use ($exclude) {
+      if ($file->isDir() && in_array($file->getFilename(), $exclude)) {
+        return false;
+      }
+      return true;
+    });
+
+    $iterator = new RecursiveIteratorIterator($filter_iterator);
+
     foreach ($iterator as $file) {
       if ($file->getFilename() === $filename) {
         return dirname($file->getPathname()) . '/';
