@@ -407,6 +407,28 @@ class ActiveRecord extends Base
   /*         helper methods below           */
   /******************************************/
 
+  final public static function sort(array $items, array $by): array
+  {
+    usort($items, function ($a, $b) use ($by) {
+      foreach ($by as $param) {
+        $field = $param[0] ?? '';
+        $order = $param[1] ?? '';
+        if (empty(trim($field)) || empty(trim($order))) continue;
+
+        $compare_result = strcmp($a[$field], $b[$field]);
+
+        if ($order === 'desc') {
+          $compare_result = -$compare_result;
+        }
+
+        if ($compare_result !== 0) return $compare_result;
+      }
+
+      return 0;
+    });
+
+    return $items;
+  }
 
   private static function table_name(): string
   {
