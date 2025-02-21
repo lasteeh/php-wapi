@@ -218,6 +218,7 @@ class ActiveRecord extends Base
     $bind_params = [];
     if ($exists) {
       $this->run_callback('before_update');
+      if (!empty($this->errors())) return false;
 
       [$set_clause, $set_bind_params] = QueryBuilder::build_set($updated_attributes);
       [$where_clause, $where_bind_params] = QueryBuilder::build_where($this->OLD);
@@ -226,6 +227,7 @@ class ActiveRecord extends Base
       $sql = "UPDATE {$table} {$set_clause} {$where_clause};";
     } else {
       $this->run_callback('before_create');
+      if (!empty($this->errors())) return false;
 
       $new_record = [];
       foreach ($this->ATTRIBUTES as $attribute) {
