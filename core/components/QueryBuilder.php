@@ -23,8 +23,6 @@ class QueryBuilder
 
   public static function build_where(array $filters, array $range = []): array
   {
-    if (empty($filters)) return ["", []];
-
     $where_clause = "";
     $where_conditions = [];
     $bind_params = [];
@@ -33,16 +31,20 @@ class QueryBuilder
       if (is_array($value) && !empty($value)) {
         $placeholders = [];
         foreach ($value as $index => $val) {
+          if (!is_scalar($val) || is_null($val)) continue;
+          if (is_bool($val)) $val = $val ? 1 : 0;
+
           $placeholder = ":__existing_{$column}_{$index}";
           $placeholders[] = $placeholder;
           $bind_params[$placeholder] = $val;
         }
-        $where_conditions[] = "{$column} IN (" . implode(", ", $placeholders) . ")";
+
+        if (!empty($placeholders)) $where_conditions[] = "{$column} IN (" . implode(", ", $placeholders) . ")";
       } elseif (is_null($value)) {
         $where_conditions[] = "{$column} IS NULL";
       } elseif (is_bool($value)) {
         $where_conditions[] = "{$column} = " . ($value ? 1 : 0);
-      } else {
+      } elseif (is_scalar($value)) {
         $placeholder = ":__existing_{$column}";
         $where_conditions[] = "{$column} = {$placeholder}";
         $bind_params[$placeholder] = $value;
@@ -51,8 +53,8 @@ class QueryBuilder
 
     foreach ($range as $column => $values) {
       if (is_array($values) && count($values) === 2) {
-        $placeholder_start = "__existing_{$column}_start";
-        $placeholder_end = "__existing_{$column}_end";
+        $placeholder_start = ":__existing_{$column}_start";
+        $placeholder_end = ":__existing_{$column}_end";
         $where_conditions[] = "{$column} BETWEEN {$placeholder_start} AND {$placeholder_end}";
         $bind_params[$placeholder_start] = $values[0];
         $bind_params[$placeholder_end] = $values[1];
