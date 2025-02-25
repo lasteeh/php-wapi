@@ -103,4 +103,30 @@ class QueryBuilder
     $values_clause = "VALUES (" . implode(", ", $placeholders) . ")";
     return [$values_clause, $bind_params];
   }
+
+  public static function build_order(ActiveRecord $model, array $sort): string
+  {
+    $order_by_clause = '';
+    if (empty($sort)) return $order_by_clause;
+
+    $valid_sort_columns = [];
+    foreach ($sort as $column => $direction) {
+      if (!is_string($column) || !property_exists($model, $column)) continue;
+
+      $valid_sort_columns[] = "{$column} " . ($direction === 'desc' ? 'DESC' : 'ASC');
+    }
+
+    $order_by_clause = "ORDER BY " . implode(", ", $valid_sort_columns);
+    return $order_by_clause;
+  }
+
+  public static function build_limit(int $limit): array
+  {
+    return $limit > 0 ? ["LIMIT :__limit", [':__limit' => $limit]] : ["", []];
+  }
+
+  public static function build_offset(int $offset): array
+  {
+    return $offset > 0 ? ["OFFSET :__offset", [':__offset' => $offset]] : ["", []];
+  }
 }

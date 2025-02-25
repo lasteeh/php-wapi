@@ -405,6 +405,48 @@ class ActiveRecord extends Base
     }
   }
 
+  final public static function count(array $filters = [], array $range = []): ?int
+  {
+    [$where_clause, $bind_params] = QueryBuilder::build_where($filters, $range);
+
+    $table = static::table_name();
+    $sql = "SELECT count(*) as count FROM {$table} {$where_clause}";
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute($bind_params);
+
+      return (int) $statement->fetch(\PDO::FETCH_ASSOC)['count'];
+    } catch (\PDOException $error) {
+      throw $error;
+    }
+  }
+
+  final public static function paginate(array $filters = [], array $range = [], array $sort = [], int $page = 1, int $limit = 10): array
+  {
+    $offset = ($page - 1) * $limit;
+    $model = new static();
+
+    [$where_clause, $where_bind_params] = QueryBuilder::build_where($filters, $range);
+    $order_clause = QueryBuilder::build_order($model, $sort);
+    [$limit_clause, $limit_bind_params] = QueryBuilder::build_limit($limit);
+    [$offset_clause, $offset_bind_params] = QueryBuilder::build_offset($offset);
+
+    $table = $model::table_name();
+    $sql = "SELECT * FROM {$table} {$where_clause} {$order_clause} {$limit_clause} {$offset_clause}";
+
+    $bind_params = array_merge($where_bind_params, $limit_bind_params, $offset_bind_params);
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute($bind_params);
+
+      return $statement->fetchAll(\PDO::FETCH_ASSOC);
+    } catch (\PDOException $error) {
+      throw $error;
+    }
+  }
+
   /******************************************/
   /*         helper methods below           */
   /******************************************/
