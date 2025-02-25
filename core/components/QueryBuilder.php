@@ -120,13 +120,15 @@ class QueryBuilder
     return $order_by_clause;
   }
 
-  public static function build_limit(int $limit): array
+  public static function build_limit(int $limit): string
   {
-    return $limit > 0 ? ["LIMIT :__limit", [':__limit' => $limit]] : ["", []];
+    $limit = max(1, $limit);
+    return "LIMIT {$limit}";
   }
 
-  public static function build_offset(int $offset): array
+  public static function build_offset(int $offset): string
   {
-    return $offset > 0 ? ["OFFSET :__offset", [':__offset' => $offset]] : ["", []];
+    $offset = max(0, $offset);
+    return "OFFSET {$offset}";
   }
 }

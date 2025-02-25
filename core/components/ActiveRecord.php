@@ -429,17 +429,15 @@ class ActiveRecord extends Base
 
     [$where_clause, $where_bind_params] = QueryBuilder::build_where($filters, $range);
     $order_clause = QueryBuilder::build_order($model, $sort);
-    [$limit_clause, $limit_bind_params] = QueryBuilder::build_limit($limit);
-    [$offset_clause, $offset_bind_params] = QueryBuilder::build_offset($offset);
+    $limit_clause = QueryBuilder::build_limit($limit);
+    $offset_clause = QueryBuilder::build_offset($offset);
 
     $table = $model::table_name();
     $sql = "SELECT * FROM {$table} {$where_clause} {$order_clause} {$limit_clause} {$offset_clause}";
 
-    $bind_params = array_merge($where_bind_params, $limit_bind_params, $offset_bind_params);
-
     try {
       $statement = Database::$PDO->prepare($sql);
-      $statement->execute($bind_params);
+      $statement->execute($where_bind_params);
 
       return $statement->fetchAll(\PDO::FETCH_ASSOC);
     } catch (\PDOException $error) {
