@@ -30,16 +30,34 @@ class QueryBuilder
     foreach ($filters as $column => $value) {
       if (is_array($value) && !empty($value)) {
         $placeholders = [];
-        foreach ($value as $index => $val) {
-          if (!is_scalar($val) || is_null($val)) continue;
+        $has_null = false;
+        $placeholder_index = 0;
+
+        foreach ($value as $val) {
+          if (is_null($val)) {
+            $has_null = true;
+            continue;
+          }
+
+          if (!is_scalar($val)) continue;
           if (is_bool($val)) $val = $val ? 1 : 0;
 
-          $placeholder = ":__existing_{$column}_{$index}";
+          $placeholder = ":__existing_{$column}_" . $placeholder_index++;
           $placeholders[] = $placeholder;
           $bind_params[$placeholder] = $val;
         }
 
-        if (!empty($placeholders)) $where_conditions[] = "{$column} IN (" . implode(", ", $placeholders) . ")";
+        $conditions = [];
+        if (!empty($placeholders)) $conditions[] = "{$column} IN (" . implode(", ", $placeholders) . ")";
+        if ($has_null) $conditions[] = "{$column} IS NULL";
+
+        if (!empty($conditions)) {
+          if (count($conditions) > 1) {
+            $where_conditions[] = "(" . implode(" OR ", $conditions) . ")";
+          } else {
+            $where_conditions[] = $conditions[0];
+          }
+        }
       } elseif (is_null($value)) {
         $where_conditions[] = "{$column} IS NULL";
       } elseif (is_bool($value)) {
