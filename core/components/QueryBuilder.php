@@ -28,12 +28,21 @@ class QueryBuilder
     $bind_params = [];
 
     foreach ($filters as $column => $value) {
-      if (is_array($value) && !empty($value)) {
+      if ($value === NOT_NULL) {
+        $where_conditions[] = "{$column} IS NOT NULL";
+        continue;
+      } elseif (is_array($value) && !empty($value)) {
         $placeholders = [];
         $has_null = false;
+        $has_not_null = false;
         $placeholder_index = 0;
 
         foreach ($value as $val) {
+          if ($val === NOT_NULL) {
+            $has_not_null = true;
+            continue;
+          }
+
           if (is_null($val)) {
             $has_null = true;
             continue;
@@ -49,6 +58,7 @@ class QueryBuilder
 
         $conditions = [];
         if (!empty($placeholders)) $conditions[] = "{$column} IN (" . implode(", ", $placeholders) . ")";
+        if ($has_not_null) $conditions[] = "{$column} IS NOT NULL";
         if ($has_null) $conditions[] = "{$column} IS NULL";
 
         if (!empty($conditions)) {
