@@ -282,6 +282,36 @@ class ActiveRecord extends Base
     return true;
   }
 
+  final public static function update_all(array $data, array $options = []): bool
+  {
+    $unique_columns = $options['unique_by'] ?? [];
+    $batch_size = max(50, (int)($options['batch_size'] ?? 50));
+
+    $batches = array_chunk($data, $batch_size);
+
+    $table = static::table_name();
+    foreach ($batches as $batch) {
+      [$set_clause, $set_bind_params, $ids] = QueryBuilder::build_batch_set($batch, $unique_columns);
+      [$where_clause, $where_bind_params] = QueryBuilder::build_batch_where($ids);
+      $bind_params = array_merge($set_bind_params, $where_bind_params);
+
+      if (empty($set_clause) || empty($where_clause)) continue;
+      if (empty($bind_params)) continue;
+
+      $sql = "UPDATE {$table} {$set_clause} {$where_clause};";
+
+      try {
+        $statement = Database::$PDO->prepare($sql);
+        $statement->execute($bind_params);
+      } catch (\PDOException $error) {
+        throw $error;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   /**
    * checks the current model instance if it already exist in the database 
    * 

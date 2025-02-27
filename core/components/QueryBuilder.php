@@ -161,4 +161,77 @@ class QueryBuilder
     $offset = max(0, $offset);
     return "OFFSET {$offset}";
   }
+
+  public static function build_batch_set(array $data, array $columns): array
+  {
+    if (empty($data) || empty($columns)) return ["", [], []];
+
+    $set_clause = "";
+    $cases = [];
+    $params = [];
+    $set_ids = [];
+
+    $fields = array_diff(array_keys(reset($data)), $columns);
+
+    foreach ($fields as $field) {
+      $cases[$field] = "{$field} = CASE";
+      foreach ($data as $index => $row) {
+
+        $when_conditions = [];
+        $composite_id = [];
+        foreach ($columns as $col) {
+          if (!isset($row[$col])) throw new Error("Entry must have the column {$col}");
+
+          $when_param = ":{$col}_when_{$field}_{$index}";
+          $when_conditions[] = "{$col} = {$when_param}";
+          $params[$when_param] = $row[$col];
+
+          $composite_id[$col] = $row[$col];
+        }
+
+        $cases[$field] .= " WHEN " . implode(" AND ", $when_conditions);
+
+        $then_param = ":{$field}_{$index}";
+        $cases[$field] .= " THEN {$then_param}";
+        $params[$then_param] = $row[$field];
+
+        if (!in_array($composite_id, $set_ids)) {
+          $set_ids[] = $composite_id;
+        }
+      }
+      $cases[$field] .= " ELSE {$field} END";
+    }
+
+    if (!empty($cases)) $set_clause = "SET " . implode(", ", $cases);
+
+    return [$set_clause, $params, $set_ids];
+  }
+
+  public static function build_batch_where(array $set_ids): array
+  {
+    if (empty($set_ids)) return ["", []];
+
+    $in_clause = "";
+    $params = [];
+    $tuples = [];
+
+    $columns = array_keys(reset($set_ids));
+
+    foreach ($set_ids as $index => $set_id) {
+
+      $placeholders = [];
+      foreach ($columns as $column) {
+        $placeholder = ":{$column}_in_{$index}";
+        $placeholders[] = $placeholder;
+        $params[$placeholder] = $set_id[$column];
+      }
+
+      $tuples[] = "(" . implode(", ", $placeholders) . ")";
+    }
+
+    $columns_str = implode(", ", $columns);
+    if (!empty($tuples)) $in_clause = "WHERE ($columns_str) IN (" . implode(", ", $tuples) . ")";
+
+    return [$in_clause, $params];
+  }
 }
