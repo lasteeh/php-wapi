@@ -286,7 +286,7 @@ class ActiveRecord extends Base
   {
     $unique_columns = $options['unique_by'] ?? [];
     $batch_size = max(50, (int)($options['batch_size'] ?? 50));
-    $duplicate_handling = $options['on_duplicated'] ?? 'update'; // 'update' by default, or 'ignore'
+    $duplicate_handling = $options['on_duplicate'] ?? ''; // do nothing by default, or 'ignore' or 'update'
 
     $fields = array_keys(reset($data));
     $batches = array_chunk($data, $batch_size);
