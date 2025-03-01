@@ -282,6 +282,68 @@ class ActiveRecord extends Base
     return true;
   }
 
+  final public static function insert_all(array $data, array $options = []): bool
+  {
+    $unique_columns = $options['unique_by'] ?? [];
+    $batch_size = max(50, (int)($options['batch_size'] ?? 50));
+    $duplicate_handling = $options['on_duplicated'] ?? 'update'; // 'update' by default, or 'ignore'
+
+    $fields = array_keys(reset($data));
+    $batches = array_chunk($data, $batch_size);
+
+    $unique_column_map = [];
+    foreach ($unique_columns as $unique_column) {
+      if (!is_string($unique_column) || isset($unique_column_map[$unique_column])) continue;
+      $unique_column_map[$unique_column] = true;
+    }
+
+    foreach ($batches as $batch) {
+      $placeholders = [];
+      $bind_params = [];
+      $update_clause = "";
+      $ignore_clause = "";
+
+      if (!empty($unique_column_map) && $duplicate_handling === 'update') {
+        $update_clause .= "ON DUPLICATE KEY UPDATE ";
+
+        foreach ($fields as $field) {
+          if (isset($unique_column_map[$field])) continue;
+
+          $update_clause .= "{$field} = VALUES({$field}), ";
+        }
+
+        $update_clause = rtrim($update_clause, ", ");
+      } elseif ($duplicate_handling === 'ignore') {
+        $ignore_clause = "IGNORE";
+      }
+
+      foreach ($batch as $row_index => $entry) {
+        $row = [];
+        foreach ($fields as $field) {
+          $placeholder = ":{$field}_{$row_index}";
+          $row[] = $placeholder;
+          $bind_params[$placeholder] = $entry[$field];
+        }
+        $placeholders[] = "(" . implode(",", $row) . ")";
+      }
+
+      $table = static::table_name();
+      $fields_clause = "(" . implode(",", $fields) . ")";
+      $values_clause = implode(",", $placeholders);
+      $sql = "INSERT {$ignore_clause} INTO {$table} {$fields_clause} VALUES {$values_clause} {$update_clause};";
+
+      try {
+        $statement = Database::$PDO->prepare($sql);
+        $statement->execute($bind_params);
+      } catch (\PDOException $error) {
+        throw $error;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   final public static function update_all(array $data, array $options = []): bool
   {
     $unique_columns = $options['unique_by'] ?? [];
