@@ -6,6 +6,7 @@ use Core\Base;
 use Core\Traits\ManagesErrorTrait;
 use Core\Components\Route;
 use Error;
+use Exception;
 
 class ActionController extends Base
 {
@@ -341,5 +342,36 @@ class ActionController extends Base
   final protected function esc_html(string $data)
   {
     return htmlspecialchars_decode($data, ENT_QUOTES | ENT_HTML5);
+  }
+
+  final protected function send_file(string $path, string $name = null, string $mime_type = 'application/octet-stream', bool $detect_mime = true): array
+  {
+    while (ob_get_level()) ob_get_clean();
+    if (!file_exists($path) || !is_readable($path)) return [null, ['File not found or inaccessible.']];
+
+    $safe_name = !empty($name) ? basename($name) : basename($path);
+
+    if ($detect_mime) {
+      $finfo = finfo_open(FILEINFO_MIME_TYPE);
+      $detect_mime = finfo_file($finfo, $path);
+      finfo_close($finfo);
+
+      if ($detect_mime !== false) $mime_type = $detect_mime;
+    }
+
+    try {
+      header('Content-Description: File transfer');
+      header('Content-Type: ' . $mime_type);
+      header('Content-Disposition: attachment; filename="' . $safe_name . '"');
+      header('Expires: 0');
+      header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+      header('Pragma: public');
+      header('Content-Length: ' . filesize($path));
+
+      readfile($path);
+      return [true, []];
+    } catch (Exception $error) {
+      return [null, [$error->getMessage()]];
+    }
   }
 }
