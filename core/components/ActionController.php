@@ -115,7 +115,9 @@ class ActionController extends Base
       $this->set_flash($type, $messages);
     }
 
-    header("Location:" . $_SERVER['HTTP_REFERER'] . $append, true, $status);
+    $return_path = $_SERVER['HTTP_REFERER'] ?? self::$HOME_URL;
+
+    header("Location:" . $return_path . $append, true, $status);
     exit;
   }
 
@@ -369,7 +371,7 @@ class ActionController extends Base
       header('Content-Length: ' . filesize($path));
 
       readfile($path);
-      return [true, []];
+      exit;
     } catch (Exception $error) {
       return [null, [$error->getMessage()]];
     }
