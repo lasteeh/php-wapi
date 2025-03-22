@@ -29,6 +29,8 @@ class Base
   protected static $HOME_DIR;
   protected static $HOME_URL;
 
+  private static $MAINTENANCE_MODE = false;
+
   final public function handle_errors($exception)
   {
     $error_count = (count($this->ERRORS) > 1) ? "Errors" : "Error";
@@ -216,5 +218,15 @@ class Base
         }
       }
     }
+  }
+
+  final public static function set_maintenance_mode(bool $bool)
+  {
+    self::$MAINTENANCE_MODE = $bool;
+  }
+
+  final public static function maintenance_mode(): bool
+  {
+    return self::$MAINTENANCE_MODE;
   }
 }

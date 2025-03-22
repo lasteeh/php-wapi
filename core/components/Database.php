@@ -6,7 +6,7 @@ use Core\Base;
 
 class Database extends Base
 {
-  public static $PDO;
+  private static $PDO;
 
   public static function connect()
   {
@@ -28,5 +28,10 @@ class Database extends Base
     } catch (\PDOException $error) {
       throw $error;
     }
+  }
+
+  public static function PDO()
+  {
+    return self::$PDO;
   }
 }

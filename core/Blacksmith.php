@@ -125,6 +125,8 @@ class Blacksmith extends Base
 
 
       case 'migrate':
+        self::set_maintenance_mode(true);
+
         $migrations_directory = self::$HOME_DIR . self::DATABASE_DIR . self::MIGRATIONS_DIR;
         if (!is_dir($migrations_directory)) throw new Error("Migration directory not found. \n");
 
@@ -143,17 +145,17 @@ class Blacksmith extends Base
           if (file_exists($file)) {
             $sql = file_get_contents($file);
 
-            Database::$PDO->beginTransaction();
+            Database::PDO()->beginTransaction();
 
             try {
-              $statement = Database::$PDO->prepare($sql);
+              $statement = Database::PDO()->prepare($sql);
               $statement->execute();
 
-              Database::$PDO->commit();
+              Database::PDO()->commit();
               echo " \n";
               echo "SQL file executed successfully: \n" . $file . " \n";
             } catch (\PDOException $error) {
-              Database::$PDO->rollback();
+              Database::PDO()->rollback();
               echo " \n";
               echo "Error executing SQL file: \n" . $file . " \n" . $error->getMessage() . " \n";
             }

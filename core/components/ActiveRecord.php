@@ -187,7 +187,7 @@ class ActiveRecord extends Base
     $sql = "UPDATE {$table} {$set_clause} {$where_clause};";
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($bind_params);
     } catch (\PDOException $error) {
       throw $error;
@@ -246,7 +246,7 @@ class ActiveRecord extends Base
     }
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($bind_params);
     } catch (\PDOException $error) {
       throw $error;
@@ -278,7 +278,7 @@ class ActiveRecord extends Base
     $sql = "DELETE FROM {$table} {$where_clause}";
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($where_bind_params);
     } catch (\PDOException $error) {
       throw $error;
@@ -339,7 +339,7 @@ class ActiveRecord extends Base
       $sql = "INSERT {$ignore_clause} INTO {$table} {$fields_clause} VALUES {$values_clause} {$update_clause};";
 
       try {
-        $statement = Database::$PDO->prepare($sql);
+        $statement = Database::PDO()->prepare($sql);
         $statement->execute($bind_params);
       } catch (\PDOException $error) {
         throw $error;
@@ -369,7 +369,7 @@ class ActiveRecord extends Base
       $sql = "UPDATE {$table} {$set_clause} {$where_clause};";
 
       try {
-        $statement = Database::$PDO->prepare($sql);
+        $statement = Database::PDO()->prepare($sql);
         $statement->execute($bind_params);
       } catch (\PDOException $error) {
         throw $error;
@@ -406,7 +406,7 @@ class ActiveRecord extends Base
     $sql = "SELECT 1 FROM {$table} {$where_clause};";
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($bind_params);
       $this->EXISTING_RECORD = $statement->fetchColumn() > 0;
       return $this->EXISTING_RECORD;
@@ -431,7 +431,7 @@ class ActiveRecord extends Base
     $sql = "SELECT {$columns_clause} FROM {$table};";
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute();
       $records = $statement->fetchAll(\PDO::FETCH_ASSOC);
       return $records;
@@ -469,7 +469,7 @@ class ActiveRecord extends Base
     $sql = "SELECT {$columns_clause} FROM {$table} {$where_clause};";
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($bind_params);
       $result = $statement->fetch(\PDO::FETCH_ASSOC);
 
@@ -493,7 +493,7 @@ class ActiveRecord extends Base
     $sql = "SELECT {$columns_clause} FROM {$table} {$where_clause}";
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($where_bind_params);
       $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -511,7 +511,7 @@ class ActiveRecord extends Base
     $sql = "SELECT count(*) as count FROM {$table} {$where_clause}";
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($bind_params);
 
       return (int) $statement->fetch(\PDO::FETCH_ASSOC)['count'];
@@ -534,7 +534,7 @@ class ActiveRecord extends Base
     $sql = "SELECT * FROM {$table} {$where_clause} {$order_clause} {$limit_clause} {$offset_clause}";
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($where_bind_params);
 
       return $statement->fetchAll(\PDO::FETCH_ASSOC);
@@ -722,7 +722,7 @@ class ActiveRecord extends Base
     $bind_params[':__primary_key'] = $primary_key_value;
 
     try {
-      $statement = Database::$PDO->prepare($sql);
+      $statement = Database::PDO()->prepare($sql);
       $statement->execute($bind_params);
       $updated_row = $statement->fetch(\PDO::FETCH_ASSOC);
     } catch (\PDOException $error) {

@@ -21,6 +21,7 @@ class App extends Base
     self::set_home_url();
     if (self::config('app.CONNECT_DB') === true)  self::connect_database();
     if (self::config('app.REQUIRE_DEPENDENCIES') === true) self::load_dependencies();
+    if (self::config('app.MAINTENANCE_MODE') === true) self::set_maintenance_mode(true);
     self::config('routes'); // load routes
   }
 
