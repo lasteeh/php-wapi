@@ -706,6 +706,12 @@ class ActiveRecord extends Base
     return $pk;
   }
 
+  protected function is_attribute_updated(string $attribute): bool
+  {
+    if (!array_key_exists($attribute, $this->OLD)) return true;
+    return $this->$attribute !== $this->OLD[$attribute];
+  }
+
   private function reload()
   {
     $primary_key = static::primary_key();
