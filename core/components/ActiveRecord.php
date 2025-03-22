@@ -192,6 +192,8 @@ class ActiveRecord extends Base
       return false;
     }
 
+    $this->update_old_attributes();
+
     $this->run_callback('after_update');
     return true;
   }
@@ -247,6 +249,8 @@ class ActiveRecord extends Base
     } catch (\PDOException $error) {
       throw $error;
     }
+
+    $this->update_old_attributes();
 
     $this->run_callback('after_save');
     return true;
@@ -688,5 +692,13 @@ class ActiveRecord extends Base
     }
 
     return $updated_attributes;
+  }
+
+  private function update_old_attributes()
+  {
+    foreach ($this->ATTRIBUTES as $attribute) {
+      if ($this->$attribute === $this->OLD[$attribute]) continue;
+      $this->OLD[$attribute] = $this->$attribute;
+    }
   }
 }
