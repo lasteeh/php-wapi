@@ -220,7 +220,7 @@ class ActiveRecord extends Base
       $this->run_callback('before_update');
       if (!empty($this->errors())) return false;
 
-      [$set_clause, $set_bind_params] = QueryBuilder::build_set($updated_attributes);
+      [$set_clause, $set_bind_params] = QueryBuilder::build_set($this->updated_attributes());
       [$where_clause, $where_bind_params] = QueryBuilder::build_where($this->OLD);
       $bind_params = array_merge($set_bind_params, $where_bind_params);
 
