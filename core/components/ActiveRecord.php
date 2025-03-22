@@ -10,7 +10,8 @@ class ActiveRecord extends Base
 {
   use ManagesErrorTrait;
 
-  public static $TABLE;
+  protected static $TABLE;
+  protected static $PRIMARY_KEY;
 
 
 
@@ -58,6 +59,7 @@ class ActiveRecord extends Base
   {
     // generate table name
     static::table_name();
+    static::primary_key();
 
     $this->assign_attributes($attributes);
 
@@ -192,7 +194,7 @@ class ActiveRecord extends Base
       return false;
     }
 
-    $this->update_old_attributes();
+    $this->reload();
 
     $this->run_callback('after_update');
     return true;
@@ -250,7 +252,7 @@ class ActiveRecord extends Base
       throw $error;
     }
 
-    $this->update_old_attributes();
+    $this->reload();
 
     $this->run_callback('after_save');
     return true;
@@ -568,7 +570,7 @@ class ActiveRecord extends Base
     return $items;
   }
 
-  private static function table_name(): string
+  public static function table_name(): string
   {
     $called_class = get_called_class();
     $stored_table_name = $called_class::$TABLE ?? null;
@@ -694,11 +696,40 @@ class ActiveRecord extends Base
     return $updated_attributes;
   }
 
-  private function update_old_attributes()
+  public function primary_key(): string
   {
-    foreach ($this->ATTRIBUTES as $attribute) {
-      if ($this->$attribute === $this->OLD[$attribute]) continue;
-      $this->OLD[$attribute] = $this->$attribute;
+    $called_class = get_called_class();
+    $pk = $called_class::$PRIMARY_KEY ?? 'id';
+
+    if (!property_exists($called_class, $pk)) throw new Error("{$called_class}: Primary key not defined.");
+
+    return $pk;
+  }
+
+  private function reload()
+  {
+    $primary_key = static::primary_key();
+    $primary_key_value = $this->$primary_key;
+
+    $table = static::table_name();
+    $sql = "SELECT * FROM {$table} WHERE {$primary_key} = :__primary_key LIMIT 1";
+    $bind_params[':__primary_key'] = $primary_key_value;
+
+    try {
+      $statement = Database::$PDO->prepare($sql);
+      $statement->execute($bind_params);
+      $updated_row = $statement->fetch(\PDO::FETCH_ASSOC);
+    } catch (\PDOException $error) {
+      throw $error;
+    }
+
+    if (empty($updated_row)) throw new Error("Oops. Unexpected error occured.");
+
+    foreach ($updated_row as $key => $value) {
+      $this->assign_attribute($key, $value);
+
+      if ($value === $this->OLD[$key]) continue;
+      $this->OLD[$key] = $value;
     }
   }
 }
