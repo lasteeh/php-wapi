@@ -16,6 +16,7 @@ class Blacksmith extends Base
   {
     if (php_sapi_name() !== 'cli') return;
 
+    self::define_constants();
     set_exception_handler([$this, 'handle_errors']);
     self::set_home_dir();
 

@@ -12,8 +12,7 @@ class App extends Base
 
   public function __construct()
   {
-    define('NOT_NULL', "__NOT_NULL__");
-
+    self::define_constants();
     set_exception_handler([$this, 'handle_errors']);
     self::set_home_dir();
 

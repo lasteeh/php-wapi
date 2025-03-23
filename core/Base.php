@@ -229,4 +229,9 @@ class Base
   {
     return self::$MAINTENANCE_MODE;
   }
+
+  final protected static function define_constants()
+  {
+    define('NOT_NULL', "__NOT_NULL__");
+  }
 }
