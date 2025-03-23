@@ -145,9 +145,10 @@ class Blacksmith extends Base
           if (file_exists($file)) {
             $sql = file_get_contents($file);
 
-            Database::PDO()->beginTransaction();
 
             try {
+              Database::PDO()->beginTransaction();
+
               $statement = Database::PDO()->prepare($sql);
               $statement->execute();
 
@@ -155,7 +156,7 @@ class Blacksmith extends Base
               echo " \n";
               echo "SQL file executed successfully: \n" . $file . " \n";
             } catch (\PDOException $error) {
-              Database::PDO()->rollback();
+              if (Database::PDO()->inTransaction()) Database::PDO()->rollback();
               echo " \n";
               echo "Error executing SQL file: \n" . $file . " \n" . $error->getMessage() . " \n";
             }
