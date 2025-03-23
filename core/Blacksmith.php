@@ -50,8 +50,8 @@ class Blacksmith extends Base
 
     switch ($action) {
 
-
       case 'refine':
+
         $model_name = $flags['model'] ?? '';
         $models_directory = str_replace("/", "\\", ucfirst(self::APP_DIR) . ucfirst(self::MODELS_DIR));
 
@@ -98,6 +98,8 @@ class Blacksmith extends Base
 
 
       case 'register':
+      case 'assemble':
+
         $model_name = $flags['model'] ?? '';
         $models_directory = str_replace("/", "\\", ucfirst(self::APP_DIR) . ucfirst(self::MODELS_DIR));
 
@@ -126,6 +128,7 @@ class Blacksmith extends Base
 
 
       case 'migrate':
+      case 'smelt':
         self::set_maintenance_mode(true);
 
         $migrations_directory = self::$HOME_DIR . self::DATABASE_DIR . self::MIGRATIONS_DIR;
@@ -170,6 +173,7 @@ class Blacksmith extends Base
 
 
       case 'migration':
+      case 'scribe':
         $migration_filename = $flags['name'] ?? '';
         $this->validate_filename($migration_filename);
 
@@ -189,6 +193,7 @@ class Blacksmith extends Base
 
 
       case 'update':
+      case 'upgrade':
 
         $download_link = $flags['url'] ?? '';
         if (empty($download_link)) {
