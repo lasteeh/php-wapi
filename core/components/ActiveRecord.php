@@ -706,7 +706,7 @@ class ActiveRecord extends Base
     return $pk;
   }
 
-  protected function is_attribute_updated(string $attribute): bool
+  protected function is_attribute_changed(string $attribute): bool
   {
     if (!array_key_exists($attribute, $this->OLD)) return true;
     return $this->$attribute !== $this->OLD[$attribute];
@@ -715,15 +715,17 @@ class ActiveRecord extends Base
   private function reload()
   {
     $primary_key = static::primary_key();
-    $primary_key_value = $this->$primary_key;
+    $primary_key_value = $this->$primary_key ?? null;
 
     $table = static::table_name();
     $sql = "SELECT * FROM {$table} WHERE {$primary_key} = :__primary_key LIMIT 1";
-    $bind_params[':__primary_key'] = $primary_key_value;
 
     try {
+      if (empty($primary_key_value)) $primary_key_value = Database::PDO()->lastInsertId();
+      if (empty($primary_key_value)) throw new Error("Oops. Unexpected error occured.");
+
       $statement = Database::PDO()->prepare($sql);
-      $statement->execute($bind_params);
+      $statement->execute([':__primary_key' => $primary_key_value]);
       $updated_row = $statement->fetch(\PDO::FETCH_ASSOC);
     } catch (\PDOException $error) {
       throw $error;
