@@ -78,6 +78,9 @@ class ActionController extends Base
         $this->$filter();
       }
     }
+
+    $this->clear_flash();
+    $this->variables = [];
   }
 
   final protected function filter_should_apply(string $action, array $options = []): bool
@@ -188,7 +191,6 @@ class ActionController extends Base
     }
 
     echo $__html;
-    $this->clear_flash();
   }
 
   final public function clear_flash()
@@ -247,7 +249,21 @@ class ActionController extends Base
 
   final protected function variables(array $variables = [])
   {
-    $this->variables = $variables ?? [];
+    if (empty($variables)) return;
+
+    $current_variables = $this->variables;
+
+    foreach ($variables as $variable => $value) {
+      $new_variable = $variable;
+      $i = 1;
+      while (array_key_exists($new_variable, $current_variables)) {
+        $new_variable = $variable . '_' . $i;
+        $i++;
+      }
+      $current_variables[$new_variable] = $value;
+    }
+
+    $this->variables = $current_variables;
   }
 
   final protected function set_meta_tags(
