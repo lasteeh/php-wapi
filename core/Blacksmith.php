@@ -147,22 +147,26 @@ class Blacksmith extends Base
 
         foreach ($migration_files as $file) {
           if (file_exists($file)) {
-            $sql = file_get_contents($file);
+            $sql_file = file_get_contents($file);
+            $sqls = explode(';', $sql_file);
 
+            foreach ($sqls as $sql) {
+              if (empty($sql)) continue;
 
-            try {
-              Database::PDO()->beginTransaction();
+              try {
+                Database::PDO()->beginTransaction();
 
-              $statement = Database::PDO()->prepare($sql);
-              $statement->execute();
+                $statement = Database::PDO()->prepare($sql);
+                $statement->execute();
 
-              Database::PDO()->commit();
-              echo " \n";
-              echo "SQL file executed successfully: \n" . $file . " \n";
-            } catch (\PDOException $error) {
-              if (Database::PDO()->inTransaction()) Database::PDO()->rollback();
-              echo " \n";
-              echo "Error executing SQL file: \n" . $file . " \n" . $error->getMessage() . " \n";
+                if (Database::PDO()->inTransaction()) Database::PDO()->commit();
+                echo " \n";
+                echo "SQL file executed successfully: \n" . $file . " \n";
+              } catch (\PDOException $error) {
+                if (Database::PDO()->inTransaction()) Database::PDO()->rollback();
+                echo " \n";
+                echo "Error executing SQL file: \n" . $file . " \n" . $error->getMessage() . " \n";
+              }
             }
           } else {
             echo "File not found: {$file} \n";
