@@ -12,7 +12,7 @@ class ActiveRecord extends Base
 
   protected static $TABLE;
   protected static $PRIMARY_KEY;
-
+  protected static $DB_ON_UPDATE_COLUMN = [];
 
 
   protected static $skip_before_validate = [];
@@ -59,7 +59,6 @@ class ActiveRecord extends Base
   {
     // generate table name
     static::table_name();
-    static::primary_key();
 
     $this->assign_attributes($attributes);
 
@@ -696,13 +695,13 @@ class ActiveRecord extends Base
     return $updated_attributes;
   }
 
-  public function primary_key(): string
+  public function primary_key(): false|array|string
   {
     $called_class = get_called_class();
     $pk = $called_class::$PRIMARY_KEY ?? 'id';
 
-    if (!property_exists($called_class, $pk)) throw new Error("{$called_class}: Primary key not defined.");
-
+    // if (!property_exists($called_class, $pk)) throw new Error("{$called_class}: Primary key not defined.");
+    if (!(is_bool($pk) && !$pk) && !is_array($pk) && !is_string($pk)) throw new Error("{$called_class}: Invalid primary key(s).");
     return $pk;
   }
 
@@ -712,26 +711,54 @@ class ActiveRecord extends Base
     return $this->$attribute !== $this->OLD[$attribute];
   }
 
+  private function reload_conditions(): array
+  {
+    $conditions = [];
+    foreach ($this->ATTRIBUTES as $attribute) {
+      if (!isset($this->$attribute) || in_array($attribute, static::$DB_ON_UPDATE_COLUMN)) continue;
+      $conditions[$attribute] = $this->$attribute;
+    }
+    return $conditions;
+  }
+
   private function reload()
   {
     $primary_key = static::primary_key();
     $primary_key_value = $this->$primary_key ?? null;
+    $updated_row = null;
 
-    $table = static::table_name();
-    $sql = "SELECT * FROM {$table} WHERE {$primary_key} = :__primary_key LIMIT 1";
-
-    try {
-      if (empty($primary_key_value)) $primary_key_value = Database::PDO()->lastInsertId();
-      if (empty($primary_key_value)) throw new Error("Oops. Unexpected error occured.");
-
-      $statement = Database::PDO()->prepare($sql);
-      $statement->execute([':__primary_key' => $primary_key_value]);
-      $updated_row = $statement->fetch(\PDO::FETCH_ASSOC);
-    } catch (\PDOException $error) {
-      throw $error;
+    if (is_bool($primary_key) && !$primary_key) {
+      // primary key declared as false
+      $updated_row = static::find_by($this->reload_conditions());
+    } elseif (is_string($primary_key)) {
+      // single primary key
+      if (!empty($primary_key_value)) {
+        $updated_row = static::find_by([$primary_key => $primary_key_value]);
+      } else {
+        // try fetching last inserted ID if the primary key value is empty
+        $primary_key_value = Database::PDO()->lastInsertId();
+        if (!empty($primary_key_value)) {
+          $updated_row = static::find_by([$primary_key => $primary_key_value]);
+        } else {
+          $updated_row = static::find_by($this->reload_conditions());
+        }
+      }
+    } elseif (is_array($primary_key)) {
+      // composite primary keys
+      $conditions = [];
+      foreach ($primary_key as $key) {
+        if (isset($this->$key) && !empty($this->$key)) {
+          $conditions[$key] = $this->$key;
+        }
+      }
+      if (!empty($conditions)) {
+        $updated_row = static::find_by($conditions);
+      } else {
+        $updated_row = static::find_by($this->reload_conditions());
+      }
     }
 
-    if (empty($updated_row)) throw new Error("Oops. Unexpected error occured.");
+    if (empty($updated_row)) throw new Error("Oops. Unexpected error occured when retrieving entry.");
 
     foreach ($updated_row as $key => $value) {
       if (!property_exists($this, $key)) continue;
