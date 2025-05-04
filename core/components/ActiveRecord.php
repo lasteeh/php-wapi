@@ -12,7 +12,7 @@ class ActiveRecord extends Base
 
   protected static $TABLE;
   protected static $PRIMARY_KEY;
-  protected static $DB_ON_UPDATE_COLUMN = [];
+  protected static $DB_ON_UPDATE_COLUMN = ['updated_at'];
 
 
   protected static $skip_before_validate = [];
@@ -729,7 +729,11 @@ class ActiveRecord extends Base
 
     if (is_bool($primary_key) && !$primary_key) {
       // primary key declared as false
-      $updated_row = static::find_by($this->reload_conditions());
+      if (static::count($this->reload_conditions()) > 1) {
+        $updated_row = null;
+      } else {
+        $updated_row = static::find_by($this->reload_conditions());
+      }
     } elseif (is_string($primary_key)) {
       // single primary key
       if (!empty($primary_key_value)) {
@@ -740,7 +744,11 @@ class ActiveRecord extends Base
         if (!empty($primary_key_value)) {
           $updated_row = static::find_by([$primary_key => $primary_key_value]);
         } else {
-          $updated_row = static::find_by($this->reload_conditions());
+          if (static::count($this->reload_conditions()) > 1) {
+            $updated_row = null;
+          } else {
+            $updated_row = static::find_by($this->reload_conditions());
+          }
         }
       }
     } elseif (is_array($primary_key)) {
@@ -754,7 +762,11 @@ class ActiveRecord extends Base
       if (!empty($conditions)) {
         $updated_row = static::find_by($conditions);
       } else {
-        $updated_row = static::find_by($this->reload_conditions());
+        if (static::count($this->reload_conditions()) > 1) {
+          $updated_row = null;
+        } else {
+          $updated_row = static::find_by($this->reload_conditions());
+        }
       }
     }
 
