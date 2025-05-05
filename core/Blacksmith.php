@@ -148,7 +148,11 @@ class Blacksmith extends Base
         foreach ($migration_files as $file) {
           if (file_exists($file)) {
             $sql_file = file_get_contents($file);
-            $sqls = explode(';', $sql_file);
+            // $sqls = explode(';', $sql_file);
+            $sqls = preg_split(
+              "/;(?![^'\"`]*(['\"`])[^'\"`]*\\1)/",
+              $sql_file
+            );
 
             foreach ($sqls as $sql) {
               if (empty($sql)) continue;
@@ -196,7 +200,11 @@ class Blacksmith extends Base
         foreach ($seed_files as $file) {
           if (file_exists($file)) {
             $sql_file = file_get_contents($file);
-            $sqls = explode(';', $sql_file);
+            // $sqls = explode(';', $sql_file);
+            $sqls = preg_split(
+              "/;(?![^'\"`]*(['\"`])[^'\"`]*\\1)/",
+              $sql_file
+            );
 
             foreach ($sqls as $sql) {
               if (empty($sql)) continue;
