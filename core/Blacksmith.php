@@ -195,6 +195,25 @@ class Blacksmith extends Base
         $this->create_file($filename);
         break;
 
+      case 'seed':
+      case 'temper':
+        $seed_filename = $flags['name'] ?? '';
+        $this->validate_filename($seed_filename);
+
+        $current_datetime = new DateTime();
+        $formatted_datetime = $current_datetime->format('YmdHisv');
+        $filename = self::$HOME_DIR . self::DATABASE_DIR . self::SEEDS_DIR . $formatted_datetime . "_" . $seed_filename . ".sql";
+
+        $seeds_directory = self::$HOME_DIR . self::DATABASE_DIR . self::SEEDS_DIR;
+        if (!is_dir($seeds_directory)) {
+          if (!mkdir($seeds_directory)) {
+            throw new Error("Failed to create migrations directory: {$seeds_directory} \n");
+          }
+        }
+
+        $this->create_file($filename);
+        break;
+
 
       case 'update':
       case 'upgrade':

@@ -15,6 +15,7 @@ class Base
   protected const CONFIG_DIR = 'config/';
   protected const DATABASE_DIR = 'database/';
   protected const MIGRATIONS_DIR = 'migrations/';
+  protected const SEEDS_DIR = 'seeds/';
   protected const CORE_DIR = 'core/';
   protected const PUBLIC_DIR = 'public/';
   protected const ASSETS_DIR = 'assets/';
