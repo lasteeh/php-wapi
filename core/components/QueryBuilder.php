@@ -49,7 +49,7 @@ class QueryBuilder
           }
 
           if (!is_scalar($val)) continue;
-          if (is_bool($val)) $val = $val ? 1 : 0;
+          $val = self::sanitize_value_for_sql($val);
 
           $placeholder = ":__existing_{$column}_" . $placeholder_index++;
           $placeholders[] = $placeholder;
@@ -75,7 +75,7 @@ class QueryBuilder
       } elseif (is_scalar($value)) {
         $placeholder = ":__existing_{$column}";
         $where_conditions[] = "{$column} = {$placeholder}";
-        $bind_params[$placeholder] = $value;
+        $bind_params[$placeholder] = self::sanitize_value_for_sql($value);
       }
     }
 
@@ -84,8 +84,8 @@ class QueryBuilder
         $placeholder_start = ":__existing_{$column}_start";
         $placeholder_end = ":__existing_{$column}_end";
         $where_conditions[] = "{$column} BETWEEN {$placeholder_start} AND {$placeholder_end}";
-        $bind_params[$placeholder_start] = $values[0];
-        $bind_params[$placeholder_end] = $values[1];
+        $bind_params[$placeholder_start] = self::sanitize_value_for_sql($values[0]);
+        $bind_params[$placeholder_end] = self::sanitize_value_for_sql($values[1]);
       }
     }
 
@@ -106,7 +106,7 @@ class QueryBuilder
 
       $placeholder = ":__updated_{$column}";
       $set_conditions[] = "{$column} = {$placeholder}";
-      $bind_params[$placeholder] = $value;
+      $bind_params[$placeholder] = self::sanitize_value_for_sql($value);
     }
 
     if (empty($set_conditions)) return [$set_clause, []];
@@ -125,7 +125,7 @@ class QueryBuilder
       if (!is_string($column)) continue;
       $placeholder = ":__value_{$column}";
       $placeholders[] = $placeholder;
-      $bind_params[$placeholder] = $value;
+      $bind_params[$placeholder] = self::sanitize_value_for_sql($value);
     }
 
     if (empty($placeholders)) return [$values_clause, []];
@@ -193,7 +193,7 @@ class QueryBuilder
 
         $then_param = ":{$field}_{$index}";
         $cases[$field] .= " THEN {$then_param}";
-        $params[$then_param] = $row[$field];
+        $params[$then_param] = self::sanitize_value_for_sql($row[$field]);
 
         if (!in_array($composite_id, $set_ids)) {
           $set_ids[] = $composite_id;
@@ -233,5 +233,14 @@ class QueryBuilder
     if (!empty($tuples)) $in_clause = "WHERE ($columns_str) IN (" . implode(", ", $tuples) . ")";
 
     return [$in_clause, $params];
+  }
+
+  private static function sanitize_value_for_sql($value)
+  {
+    if (is_bool($value)) return (int)$value;
+
+    // add more cases 
+
+    return $value;
   }
 }
