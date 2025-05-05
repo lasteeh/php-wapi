@@ -155,6 +155,7 @@ class Blacksmith extends Base
             );
 
             foreach ($sqls as $sql) {
+              $sql = trim($sql);
               if (empty($sql)) continue;
 
               try {
@@ -207,6 +208,7 @@ class Blacksmith extends Base
             );
 
             foreach ($sqls as $sql) {
+              $sql = trim($sql);
               if (empty($sql)) continue;
 
               try {
