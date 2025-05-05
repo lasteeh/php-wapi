@@ -163,6 +163,7 @@ class Blacksmith extends Base
 
                 $statement = Database::PDO()->prepare($sql);
                 $statement->execute();
+                $statement->closeCursor();
 
                 if (Database::PDO()->inTransaction()) Database::PDO()->commit();
                 echo " \n";
@@ -216,6 +217,7 @@ class Blacksmith extends Base
 
                 $statement = Database::PDO()->prepare($sql);
                 $statement->execute();
+                $statement->closeCursor();
 
                 if (Database::PDO()->inTransaction()) Database::PDO()->commit();
                 echo " \n";
