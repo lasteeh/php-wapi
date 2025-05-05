@@ -175,6 +175,54 @@ class Blacksmith extends Base
         break;
 
 
+      case 'seed':
+      case 'quench':
+        self::set_maintenance_mode(true);
+
+        $seed_directory = self::$HOME_DIR . self::DATABASE_DIR . self::SEEDS_DIR;
+        if (!is_dir($seed_directory)) throw new Error("Seed directory not found. \n");
+
+        $seed_files = glob($seed_directory . "/*.sql");
+        if ($seed_files === false) throw new Error("Error fetching SQL files from {$seed_directory}. \n");
+
+        sort($seed_files);
+
+        $confirmation = readline("This action cannot be undone. Continue seeding? Y/n: ");
+        if (strtolower($confirmation) !== 'y') {
+          echo "Seeding aborted.";
+          return;
+        }
+
+        foreach ($seed_files as $file) {
+          if (file_exists($file)) {
+            $sql_file = file_get_contents($file);
+            $sqls = explode(';', $sql_file);
+
+            foreach ($sqls as $sql) {
+              if (empty($sql)) continue;
+
+              try {
+                Database::PDO()->beginTransaction();
+
+                $statement = Database::PDO()->prepare($sql);
+                $statement->execute();
+
+                if (Database::PDO()->inTransaction()) Database::PDO()->commit();
+                echo " \n";
+                echo "SQL file executed successfully: \n" . $file . " \n";
+              } catch (\PDOException $error) {
+                if (Database::PDO()->inTransaction()) Database::PDO()->rollback();
+                echo " \n";
+                echo "Error executing SQL file: \n" . $file . " \n" . $error->getMessage() . " \n";
+              }
+            }
+          } else {
+            echo "File not found: {$file} \n";
+          }
+        }
+        break;
+
+
 
       case 'migration':
       case 'scribe':
@@ -195,7 +243,7 @@ class Blacksmith extends Base
         $this->create_file($filename);
         break;
 
-      case 'seed':
+      case 'seeding':
       case 'temper':
         $seed_filename = $flags['name'] ?? '';
         $this->validate_filename($seed_filename);
@@ -207,7 +255,7 @@ class Blacksmith extends Base
         $seeds_directory = self::$HOME_DIR . self::DATABASE_DIR . self::SEEDS_DIR;
         if (!is_dir($seeds_directory)) {
           if (!mkdir($seeds_directory)) {
-            throw new Error("Failed to create migrations directory: {$seeds_directory} \n");
+            throw new Error("Failed to create seed directory: {$seeds_directory} \n");
           }
         }
 
