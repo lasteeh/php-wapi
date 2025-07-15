@@ -773,7 +773,7 @@ class ActiveRecord extends Base
     if (empty($updated_row)) throw new Error("Oops. Unexpected error occured when retrieving entry.");
 
     foreach ($updated_row as $key => $value) {
-      if (!property_exists($this, $key)) continue;
+      if (!property_exists($this, $key) || !in_array($key, $this->ATTRIBUTES)) continue;
       $this->assign_attribute($key, $value);
 
       if (isset($this->OLD[$key]) && $value === $this->OLD[$key]) continue;
