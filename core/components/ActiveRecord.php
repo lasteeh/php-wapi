@@ -399,6 +399,20 @@ class ActiveRecord extends Base
       $filters[$attribute] = $this->$attribute;
     }
 
+    $primary_key = static::primary_key();
+    if (!empty($primary_key)) {
+      if (is_string($primary_key)) {
+        if (!isset($filters[$primary_key])) {
+          $filters[$primary_key] = $this->$primary_key ?? null;
+        }
+      } elseif (is_array($primary_key)) {
+        foreach ($primary_key as $key) {
+          if (isset($filters[$key])) continue;
+          $filters[$key] = $this->$key ?? null;
+        }
+      }
+    }
+
     [$where_clause, $bind_params] = QueryBuilder::build_where($filters);
 
     $table = static::table_name();
@@ -479,17 +493,18 @@ class ActiveRecord extends Base
     }
   }
 
-  final public static function fetch_by(array $filter, array $return = [], array $range = []): array
+  final public static function fetch_by(array $filter, array $return = [], array $range = [], array $sort = []): array
   {
     $model = new static();
 
     $columns_clause = QueryBuilder::build_columns($model, $return);
     if (empty($columns_clause)) throw new Error("No valid columns.");
 
-    [$where_clause, $where_bind_params] = QueryBuilder::build_where($filter);
+    [$where_clause, $where_bind_params] = QueryBuilder::build_where($filter, $range);
+    $order_clause = QueryBuilder::build_order($model, $sort);
 
     $table = $model::table_name();
-    $sql = "SELECT {$columns_clause} FROM {$table} {$where_clause}";
+    $sql = "SELECT {$columns_clause} FROM {$table} {$where_clause} {$order_clause}";
 
     try {
       $statement = Database::PDO()->prepare($sql);
@@ -724,7 +739,8 @@ class ActiveRecord extends Base
   private function reload()
   {
     $primary_key = static::primary_key();
-    $primary_key_value = $this->$primary_key ?? null;
+    $primary_key_value = null;
+    if (is_string($primary_key)) $primary_key_value = $this->$primary_key ?? null;
     $updated_row = null;
 
     if (is_bool($primary_key) && !$primary_key) {
