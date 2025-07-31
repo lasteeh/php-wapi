@@ -236,6 +236,20 @@ class ActionMailer extends Base
     return self::$HOME_URL . "/" . self::PUBLIC_DIR . self::ASSETS_DIR . "images/" . $name;
   }
 
+  final protected static function path(string $to = '', string $name = '')
+  {
+    $path = '';
+
+    if (!empty($name) && empty($to)) {
+      $path = Route::fetch(name: $name, return: ['path']);
+      return static::$HOME_URL . $path;
+    } else {
+      $path = static::$HOME_URL . $to;
+    }
+
+    return $path;
+  }
+
   final protected static function preview_mail()
   {
     static::build_body();
