@@ -566,10 +566,18 @@ class ActiveRecord extends Base
     usort($items, function ($a, $b) use ($by) {
       foreach ($by as $param) {
         $field = $param[0] ?? '';
-        $order = $param[1] ?? '';
+        $order = strtolower($param[1] ?? 'asc');
+
         if (empty(trim($field)) || empty(trim($order))) continue;
 
-        $compare_result = strcmp($a[$field], $b[$field]);
+        $value_a = $a[$field] ?? null;
+        $value_b = $b[$field] ?? null;
+
+        if (is_numeric($value_a) && is_numeric($value_b)) {
+          $compare_result = $value_a <=> $value_b;
+        } else {
+          $compare_result = strcmp((string) $value_a, (string) $value_b);
+        }
 
         if ($order === 'desc') {
           $compare_result = -$compare_result;
