@@ -253,6 +253,12 @@ class ActiveRecord extends Base
 
     $this->reload();
 
+    if ($exists) {
+      $this->run_callback('after_update');
+    } else {
+      $this->run_callback('after_create');
+    }
+
     $this->run_callback('after_save');
     return true;
   }
