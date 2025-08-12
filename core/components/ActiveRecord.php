@@ -271,6 +271,7 @@ class ActiveRecord extends Base
     }
 
     $this->run_callback('before_destroy');
+    if (!empty($this->errors())) return false;
 
     $filters = [];
     foreach ($this->ATTRIBUTES as $attribute) {
