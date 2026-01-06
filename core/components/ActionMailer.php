@@ -19,12 +19,12 @@ class ActionMailer extends Base
   protected static $from_email = '';
   protected static $from_name = '';
 
-  private static string $body = '';
-  private static array $reply_to = [];
-  private static array $cc = [];
-  private static array $bcc = [];
-  private static array $variables = [];
-  private static bool $is_html = true;
+  protected static string $body = '';
+  protected static array $reply_to = [];
+  protected static array $cc = [];
+  protected static array $bcc = [];
+  protected static array $variables = [];
+  protected static bool $is_html = true;
 
   final public static function set_template(string $template, string $path = '')
   {
@@ -203,7 +203,7 @@ class ActionMailer extends Base
     return $__partial_content;
   }
 
-  private static function build_body()
+  final protected static function build_body()
   {
 
     $__variables = [];
