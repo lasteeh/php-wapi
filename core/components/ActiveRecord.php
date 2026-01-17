@@ -65,7 +65,7 @@ class ActiveRecord extends Base
     // store old values if record already exist
     if ($this->record_exists()) {
       foreach ($attributes as $attribute => $value) {
-        $this->OLD[$attribute] = $value;
+        $this->OLD[$attribute] = $this->$attribute;
       }
     }
 
